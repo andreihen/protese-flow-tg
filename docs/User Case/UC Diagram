@@ -1,0 +1,38 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Dentista" as Doutor
+actor "Gestor" as Gestor
+actor "Técnico" as Cadista
+
+package "Fluxo de Sistema Gestorial" {
+    
+    usecase "Criar Novo Pedido" as UC2
+    usecase "Fazer Upload de STL" as UC3
+    usecase "Consultar Status" as UC4
+    usecase "Aprovar/Reprovar Pedido" as UC5
+    usecase "Fazer Login" as UC1
+    usecase "Baixar Arquivo" as UC6
+    usecase "Entregar Projeto Finalizado" as UC7
+
+    ' Relações do Doutor
+    Doutor --> UC1
+    Doutor --> UC2
+    Doutor --> UC4
+    
+    ' Relação de Include (O pulo do gato acadêmico)
+    ' Isso diz que para criar pedido, OBRIGATORIAMENTE tem que ter upload
+    UC2 ..> UC3 : <<include>>
+
+    ' Relações do Gestor
+    Gestor --> UC1
+    Gestor --> UC4
+    Gestor --> UC5
+
+    ' Relações do Cadista
+    Cadista --> UC1
+    Cadista --> UC6
+    Cadista --> UC7
+}
+@enduml
