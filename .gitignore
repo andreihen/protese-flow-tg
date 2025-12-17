@@ -1,1 +1,14 @@
 
+# Ignorar arquivos temporários do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignorar ambiente virtual e banco de dados local
+venv/
+env/
+db.sqlite3
+
+# Ignorar arquivos de sistema
+.DS_Store
+Thumbs.db
