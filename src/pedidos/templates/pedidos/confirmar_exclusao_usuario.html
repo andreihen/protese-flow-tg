@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Excluir Usuário?</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-5 text-center" style="max-width: 500px;">
+    <div class="card border-danger shadow">
+        <div class="card-header bg-danger text-white">
+            <h4 class="mb-0">⚠️ Atenção!</h4>
+        </div>
+        <div class="card-body">
+            <p class="lead">Tem certeza que deseja excluir o usuário <strong>{{ usuario_alvo.username }}</strong>?</p>
+            <p class="text-muted">Todos os pedidos feitos por ele também poderão ser afetados ou apagados.</p>
+            
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-lg w-100 mb-2">Sim, Excluir Definitivamente</button>
+            </form>
+            <a href="{% url 'lista_usuarios' %}" class="btn btn-outline-secondary w-100">Cancelar</a>
+        </div>
+    </div>
+</body>
+</html>

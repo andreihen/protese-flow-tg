@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cadastre-se - ProteseFlow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light d-flex align-items-center justify-content-center" style="height: 100vh;">
+    <div class="card shadow p-4" style="width: 400px;">
+        <h3 class="text-center mb-4">Novo Dentista</h3>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if form.errors %}
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            
+            {% for field in form %}
+            <div class="mb-3">
+                <label class="form-label fw-bold">{{ field.label }}</label>
+                {{ field }} 
+                {% if field.help_text %}
+                <small class="form-text text-muted">{{ field.help_text }}</small>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <button type="submit" class="btn btn-success w-100 mb-3">Criar Conta</button>
+        </form>
+
+        <div class="text-center border-top pt-3">
+            <p class="mb-1">Já possui cadastro?</p>
+            <a href="{% url 'login' %}" class="btn btn-outline-primary w-100">
+                Fazer Login
+            </a>
+        </div>
+
+    </div>
+</body>
+</html>

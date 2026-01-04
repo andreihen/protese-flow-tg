@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Painel do Gestor - ProteseFlow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-3">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+    <nav class="navbar navbar-dark bg-primary mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                🦷 ProteseFlow | 
+                {% if user.tipo_usuario == 'DENTISTA' %}
+                    Meus Pedidos
+                {% else %}
+                    Gestão
+                {% endif %}
+            </a>
+            
+            <div class="d-flex align-items-center gap-3">
+                <a href="{% url 'meu_perfil' %}" class="text-white text-decoration-none fw-bold me-3">
+                    👤 Olá, {{ user.username }}!
+                </a>
+                
+                <a href="/novo-pedido/" class="btn btn-light btn-sm">+ Novo Pedido</a>
+
+                {% if user.tipo_usuario == 'GESTOR' or user.is_superuser %}
+                    <a href="{% url 'lista_usuarios' %}" class="btn btn-warning btn-sm text-dark">👥 Usuários</a>
+                {% endif %}
+                
+                <form action="{% url 'logout' %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Sair</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h4 class="mb-0">Fila de Produção</h4>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Paciente</th>
+                            <th>Serviço</th>
+                            <th>Dentista</th>
+                            <th>Status</th>
+                            <th>Prazo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pedido in pedidos %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'editar_pedido' pedido.id %}" class="btn btn-sm btn-outline-dark">
+                                    #{{ pedido.id }} ✏️
+                                </a>
+                            </td>
+                            <td class="fw-bold">{{ pedido.nome_paciente }}</td>
+                            <td>{{ pedido.tipo_servico }} ({{ pedido.dentes }})</td>
+                            <td>{{ pedido.dentista.username }}</td>
+                            <td>
+                                {% if pedido.status == 'PENDENTE' %}
+                                    <span class="badge bg-warning text-dark">Pendente</span>
+                                {% elif pedido.status == 'EM_PRODUCAO' %}
+                                    <span class="badge bg-info">Em Produção</span>
+                                {% elif pedido.status == 'CONCLUIDO' %}
+                                    <span class="badge bg-success">Concluído</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ pedido.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ pedido.data_entrega_prevista|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                Nhum pedido encontrado. <a href="/novo-pedido/">Cadastre o primeiro!</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
