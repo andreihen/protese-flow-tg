@@ -4,7 +4,8 @@ from django.contrib.auth import views as auth_views
 from pedidos.views import (
     novo_pedido, dashboard, editar_pedido, cadastrar, 
     lista_usuarios, editar_usuario, excluir_usuario, cadastrar,
-    novo_pedido, dashboard, editar_pedido, meu_perfil
+    novo_pedido, dashboard, editar_pedido, meu_perfil, criar_usuario,
+    lixeira_usuarios, restaurar_usuario, deletar_permanente
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -22,19 +23,21 @@ urlpatterns = [
     path('usuarios/editar/<int:id>/', editar_usuario, name='editar_usuario'),
     path('usuarios/excluir/<int:id>/', excluir_usuario, name='excluir_usuario'),
     path('meu-perfil/', meu_perfil, name='meu_perfil'),
-
+    path('usuarios/criar/', criar_usuario, name='criar_usuario'),
     path('alterar-senha/', 
          auth_views.PasswordChangeView.as_view(
              template_name='pedidos/alterar_senha.html',
              success_url='/alterar-senha/sucesso/'
          ), 
          name='password_change'),
-
     path('alterar-senha/sucesso/', 
          auth_views.PasswordChangeDoneView.as_view(
              template_name='pedidos/alterar_senha_sucesso.html'
          ), 
          name='password_change_done'),
+    path('usuarios/lixeira/', lixeira_usuarios, name='lixeira_usuarios'),
+    path('usuarios/restaurar/<int:id>/', restaurar_usuario, name='restaurar_usuario'),
+    path('usuarios/deletar-permanente/<int:id>/', deletar_permanente, name='deletar_permanente'),
 ]
 
 if settings.DEBUG:

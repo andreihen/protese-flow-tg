@@ -1,21 +1,13 @@
-# --- Segurança e Dados Pessoais ---
 src/media/
 db.sqlite3
 *.sqlite3
 .env
 secret.key
-
-# --- Arquivos Temporários e de Sistema ---
 __pycache__/
 *.py[cod]
 .DS_Store
-
-# --- Ambiente Virtual (NUNCA suba isso) ---
 venv/
 env/
 .venv/
-
-# --- Arquivos de Mídia (Uploads de teste) ---
-# A pasta media deve existir, mas não os arquivos dentro dela
 protese-flow-tg/src/media/
 !protese-flow-tg/src/media/.gitkeep

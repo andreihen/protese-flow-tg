@@ -1,15 +1,34 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import RegexValidator
 
 class Usuario(AbstractUser):
     TIPO_CHOICES = (
-        ('DENTISTA', 'Dentista'),
         ('GESTOR', 'Gestor'),
         ('CADISTA', 'Cadista'),
+        ('DENTISTA', 'Dentista'),
     )
+
+    username_validator = RegexValidator(
+        regex=r'^[\w\s.-]+$',
+        message='O nome de usuário pode conter letras, números, espaços, hífens e underlines.'
+    )
+
+    username = models.CharField(
+        'Nome de Usuário',
+        max_length=150,
+        unique=True,
+        help_text='Necessário. 150 caracteres ou menos. Letras, dígitos e @/./+/-/_/espaços.',
+        validators=[username_validator],
+        error_messages={
+            'unique': "Já existe um usuário com este nome.",
+        },
+    )
+
     tipo_usuario = models.CharField(max_length=20, choices=TIPO_CHOICES, default='DENTISTA')
-    
     telefone = models.CharField(max_length=20, blank=True, null=True)
+    cro = models.CharField(max_length=20, blank=True, null=True, verbose_name="Número do CRO")
+    esta_arquivado = models.BooleanField(default=False, verbose_name="Está na Lixeira")
 
 class Pedido(models.Model):
     STATUS_CHOICES = (

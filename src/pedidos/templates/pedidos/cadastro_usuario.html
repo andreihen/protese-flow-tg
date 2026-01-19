@@ -1,58 +1,147 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-    <title>Cadastre-se - ProteseFlow</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Conta | ProteseFlow</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card-cadastro {
+            border: none;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        /* Ajuste do fundo branco do Chrome Autocomplete */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+            -webkit-text-fill-color: #212529 !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        /* Estilo dos Labels para ficarem mais bonitos */
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        
+        .link-login {
+            text-decoration: none;
+            color: #0d6efd;
+            font-weight: 600;
+        }
+        .link-login:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
-<body class="bg-light d-flex align-items-center justify-content-center" style="height: 100vh;">
-    <div class="card shadow p-4" style="width: 400px;">
-        <h3 class="text-center mb-4">Novo Dentista</h3>
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<body>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-5">
+                
+                <div class="card card-cadastro shadow-lg">
+                    <div class="card-body p-4 p-md-5">
+                        
+                        <div class="text-center mb-4">
+                            <h2 class="fw-bold text-primary">🦷 ProteseFlow</h2>
+                            <p class="text-muted">Cadastro de Dentista</p>
+                        </div>
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger d-flex align-items-center mb-3">
+                            <div>
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}<br>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+
+                            <div class="mb-3">
+                                <label for="{{ form.username.id_for_label }}" class="form-label">Nome de Usuário</label>
+                                {{ form.username }}
+                                {% if form.username.errors %}
+                                    <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">E-mail</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label for="{{ form.telefone.id_for_label }}" class="form-label">Telefone</label>
+                                    {{ form.telefone }}
+                                    {% if form.telefone.errors %}
+                                        <div class="text-danger small mt-1">{{ form.telefone.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-6">
+                                    <label for="{{ form.cro.id_for_label }}" class="form-label">CRO / UF</label>
+                                    {{ form.cro }}
+                                    {% if form.cro.errors %}
+                                        <div class="text-danger small mt-1">{{ form.cro.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.password1.id_for_label }}" class="form-label">Senha</label>
+                                {{ form.password1 }}
+                                {% if form.password1.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.password1.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="{{ form.password2.id_for_label }}" class="form-label">Confirmar Senha</label>
+                                {{ form.password2 }}
+                                {% if form.password2.errors %}
+                                    <div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="d-grid mb-4">
+                                <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm">
+                                    Criar Conta
+                                </button>
+                            </div>
+                            
+                            <div class="text-center">
+                                <span class="text-muted">Já tem uma conta?</span>
+                                <a href="{% url 'login' %}" class="link-login ms-1">Fazer Login</a>
+                            </div>
+
+                        </form>
+                    </div>
                 </div>
-            {% endfor %}
-        {% endif %}
 
-        {% if form.errors %}
-            <div class="alert alert-danger">
-                <ul class="mb-0">
-                {% for field in form %}
-                    {% for error in field.errors %}
-                        <li><strong>{{ field.label }}:</strong> {{ error }}</li>
-                    {% endfor %}
-                {% endfor %}
-                {% for error in form.non_field_errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
-                </ul>
             </div>
-        {% endif %}
-        <form method="post">
-            {% csrf_token %}
-            
-            {% for field in form %}
-            <div class="mb-3">
-                <label class="form-label fw-bold">{{ field.label }}</label>
-                {{ field }} 
-                {% if field.help_text %}
-                <small class="form-text text-muted">{{ field.help_text }}</small>
-                {% endif %}
-            </div>
-            {% endfor %}
-
-            <button type="submit" class="btn btn-success w-100 mb-3">Criar Conta</button>
-        </form>
-
-        <div class="text-center border-top pt-3">
-            <p class="mb-1">Já possui cadastro?</p>
-            <a href="{% url 'login' %}" class="btn btn-outline-primary w-100">
-                Fazer Login
-            </a>
         </div>
-
     </div>
+
 </body>
 </html>
