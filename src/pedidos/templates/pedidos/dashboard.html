@@ -30,8 +30,22 @@
                 <a href="{% url 'meu_perfil' %}" class="text-white text-decoration-none fw-bold me-3">
                     👤 Olá, {{ user.username }}!
                 </a>
+
+                {% if request.user.is_superuser or request.user.tipo_usuario == 'Gestor' %}
+                    <a href="{% url 'lista_aprovacao' %}" class="btn btn-warning btn-sm me-2 shadow-sm">
+                        🔔 Solicitações
+                    </a>
+                {% endif %}
                 
-                <a href="/novo-pedido/" class="btn btn-light btn-sm">+ Novo Pedido</a>
+                {% if request.user.cadastro_confirmado or request.user.is_superuser %}
+                    <a href="{% url 'criar_pedido' %}" class="btn btn-primary btn-sm me-2 fw-bold shadow-sm">
+                        + Novo Pedido
+                    </a>
+                {% else %}
+                    <button class="btn btn-secondary btn-sm me-2" disabled style="cursor: not-allowed; opacity: 0.6;" title="Aguardando aprovação do Gestor">
+                        🔒 Novo Pedido (Bloqueado)
+                    </button>
+                {% endif %}
 
                 {% if user.tipo_usuario == 'GESTOR' or user.is_superuser %}
                     <a href="{% url 'lista_usuarios' %}" class="btn btn-warning btn-sm text-dark">👥 Usuários</a>
@@ -44,6 +58,17 @@
             </div>
         </div>
     </nav>
+
+    {% if not request.user.cadastro_confirmado and not request.user.is_superuser %}
+        <div class="alert alert-warning text-center mb-0 rounded-0 shadow-sm" role="alert">
+            <h4 class="alert-heading fw-bold"><br>⚠️ Conta em Análise</h4>
+            <p class="mb-0">
+                Seu cadastro está sendo verificado pela nossa equipe. 
+                Você já pode acessar o sistema, mas a <strong>criação de novos pedidos</strong> 
+                será liberada após a validação do seu CRO.
+            </p>
+        </div>
+    {% endif %}
 
     <div class="container">
         <div class="card shadow">
@@ -89,7 +114,7 @@
                         {% empty %}
                         <tr>
                             <td colspan="6" class="text-center py-4">
-                                Nhum pedido encontrado. <a href="/novo-pedido/">Cadastre o primeiro!</a>
+                                Nenhum pedido encontrado. <a href="/novo-pedido/">Cadastre o primeiro!</a>
                             </td>
                         </tr>
                         {% endfor %}

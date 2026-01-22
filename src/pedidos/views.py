@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import login
 from django.contrib import messages
 from .models import Anexo, Usuario, Pedido
@@ -21,6 +21,10 @@ def dashboard(request):
 
 @login_required
 def novo_pedido(request):
+    if not request.user.cadastro_confirmado:
+        messages.warning(request, 'Sua conta ainda está em análise pelo Gestor. Você não pode criar pedidos ainda.')
+        return redirect('dashboard')
+    
     if request.method == 'POST':
         form_pedido = PedidoForm(request.POST)
         form_anexo = AnexoForm(request.POST, request.FILES)
@@ -72,26 +76,28 @@ def editar_pedido(request, id):
     })
 
 def cadastrar(request):
+    # Se já estiver logado, manda pro Dashboard
     if request.user.is_authenticated:
         return redirect('dashboard')
 
     if request.method == 'POST':
         form = CadastroForm(request.POST)
+
         if form.is_valid():
-            # 1. Salva o usuário no banco
-            user = form.save()
-            
-            # 2. Faz o login automático imediatamente
+            user = form.save(commit=False)
+            user.cadastro_confirmado = False  # <--- O campo novo do modelo
+            user.save()
+
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            
-            # 3. Mensagem de sucesso e redirecionamento
-            messages.success(request, f'Bem-vindo(a), {user.username}!')
+
+            messages.success(request, 'Cadastro realizado! Seu acesso está limitado até a validação do CRO.')
             return redirect('dashboard')
         else:
-            # Se der erro, mostra no terminal para você saber o que foi
-            print("Erros do formulário:", form.errors) 
-            messages.error(request, 'Erro ao criar conta. Verifique os campos abaixo.')
+            # Se o form for inválido, o 'form' com erros já existe aqui
+            pass 
+            
     else:
+        # Se for GET (abrir a página), cria um form vazio
         form = CadastroForm()
 
     return render(request, 'pedidos/cadastro_usuario.html', {'form': form})
@@ -122,7 +128,6 @@ def lista_usuarios(request):
 
 @login_required
 def criar_usuario(request):
-    # Apenas Gestor pode acessar
     if not eh_gestor(request.user):
         return redirect('dashboard')
 
@@ -139,7 +144,6 @@ def criar_usuario(request):
 
 @login_required
 def editar_usuario(request, id):
-    # Verifica se é gestor
     if not eh_gestor(request.user):
         return redirect('dashboard')
 
@@ -215,4 +219,30 @@ def deletar_permanente(request, id):
     return render(request, 'pedidos/confirmar_exclusao_permanente.html', {'usuario_alvo': usuario})
 
 def eh_gestor(user):
-    return user.tipo_usuario in ['GESTOR', 'CADISTA'] or user.is_superuser
+    return user.is_authenticated and (user.tipo_usuario == 'Gestor' or user.is_superuser)
+
+@login_required
+@user_passes_test(eh_gestor)
+def lista_aprovacao(request):
+    # Filtra quem NÃO tem o cadastro confirmado
+    pendentes = Usuario.objects.filter(cadastro_confirmado=False).exclude(is_superuser=True)
+    return render(request, 'pedidos/lista_aprovacao.html', {'pendentes': pendentes})
+
+@login_required
+@user_passes_test(eh_gestor)
+def aprovar_usuario(request, user_id):
+    usuario = get_object_or_404(Usuario, id=user_id)
+    
+    usuario.cadastro_confirmado = True # <--- Agora mudamos este campo
+    usuario.save()
+    
+    messages.success(request, f'Dentista {usuario.username} autorizado com sucesso!')
+    return redirect('lista_aprovacao')
+
+@login_required
+@user_passes_test(eh_gestor)
+def rejeitar_usuario(request, user_id):
+    usuario = get_object_or_404(Usuario, id=user_id)
+    usuario.delete() # Exclui a conta solicitada
+    messages.warning(request, f'Solicitação de {usuario.username} foi rejeitada e excluída.')
+    return redirect('lista_aprovacao')

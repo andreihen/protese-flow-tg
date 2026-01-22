@@ -5,7 +5,8 @@ from pedidos.views import (
     novo_pedido, dashboard, editar_pedido, cadastrar, 
     lista_usuarios, editar_usuario, excluir_usuario, cadastrar,
     novo_pedido, dashboard, editar_pedido, meu_perfil, criar_usuario,
-    lixeira_usuarios, restaurar_usuario, deletar_permanente
+    lixeira_usuarios, restaurar_usuario, deletar_permanente, lista_aprovacao,
+    aprovar_usuario, rejeitar_usuario, novo_pedido
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -38,6 +39,10 @@ urlpatterns = [
     path('usuarios/lixeira/', lixeira_usuarios, name='lixeira_usuarios'),
     path('usuarios/restaurar/<int:id>/', restaurar_usuario, name='restaurar_usuario'),
     path('usuarios/deletar-permanente/<int:id>/', deletar_permanente, name='deletar_permanente'),
+    path('gestao/solicitacoes/', lista_aprovacao, name='lista_aprovacao'),
+    path('gestao/aprovar/<int:user_id>/', aprovar_usuario, name='aprovar_usuario'),
+    path('gestao/rejeitar/<int:user_id>/', rejeitar_usuario, name='rejeitar_usuario'),
+    path('novo-pedido/', novo_pedido, name='criar_pedido'),
 ]
 
 if settings.DEBUG:

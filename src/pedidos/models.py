@@ -29,6 +29,7 @@ class Usuario(AbstractUser):
     telefone = models.CharField(max_length=20, blank=True, null=True)
     cro = models.CharField(max_length=20, blank=True, null=True, verbose_name="Número do CRO")
     esta_arquivado = models.BooleanField(default=False, verbose_name="Está na Lixeira")
+    cadastro_confirmado = models.BooleanField(default=False)
 
 class Pedido(models.Model):
     STATUS_CHOICES = (
