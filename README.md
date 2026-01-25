@@ -1,6 +1,6 @@
 # 🦷 ProteseFlow - Sistema de Gestão de Próteses Dentárias
 
-Este projeto é um Trabalho de Graduação (TG) desenvolvido para o curso de [Seu Curso] da FATEC. O objetivo é otimizar o fluxo de solicitação e acompanhamento de próteses dentárias entre Dentistas e Laboratórios.
+Este projeto é um Trabalho de Graduação (TG) desenvolvido para o curso de Análise e Desenvolvimento de Sistemas da FATEC. O objetivo é otimizar o fluxo de solicitação e acompanhamento de próteses dentárias entre Dentistas e Laboratórios.
 
 ## 🚀 Funcionalidades
 - **Painel do Dentista:** Envio de pedidos, upload de arquivos STL/PLY e acompanhamento de status.
