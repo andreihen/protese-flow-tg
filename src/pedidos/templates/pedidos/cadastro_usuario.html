@@ -19,7 +19,6 @@
             overflow: hidden;
         }
         
-        /* Ajuste do fundo branco do Chrome Autocomplete */
         input:-webkit-autofill,
         input:-webkit-autofill:hover, 
         input:-webkit-autofill:focus, 
@@ -29,7 +28,6 @@
             transition: background-color 5000s ease-in-out 0s;
         }
 
-        /* Estilo dos Labels para ficarem mais bonitos */
         .form-label {
             font-weight: 600;
             color: #495057;
@@ -78,6 +76,14 @@
                                 {{ form.username }}
                                 {% if form.username.errors %}
                                     <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">Nome Completo</label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.first_name.errors.0 }}</div>
                                 {% endif %}
                             </div>
 

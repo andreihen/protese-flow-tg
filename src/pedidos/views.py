@@ -21,26 +21,30 @@ def dashboard(request):
 
 @login_required
 def novo_pedido(request):
-    if not request.user.cadastro_confirmado:
+    if not request.user.cadastro_confirmado and not request.user.is_superuser:
         messages.warning(request, 'Sua conta ainda está em análise pelo Gestor. Você não pode criar pedidos ainda.')
         return redirect('dashboard')
     
     if request.method == 'POST':
-        form_pedido = PedidoForm(request.POST)
+        form_pedido = PedidoForm(request.POST, request.FILES, user=request.user)
         form_anexo = AnexoForm(request.POST, request.FILES)
 
         if form_pedido.is_valid() and form_anexo.is_valid():
             pedido = form_pedido.save(commit=False)
-            pedido.dentista = request.user
+            
+            if not (request.user.tipo_usuario == 'GESTOR' or request.user.is_superuser):
+                pedido.dentista = request.user
+            
             pedido.save()
 
             anexo = form_anexo.save(commit=False)
             anexo.pedido = pedido
             anexo.save()
 
-            return render(request, 'pedidos/sucesso.html')
+            messages.success(request, 'Pedido criado com sucesso!')
+            return redirect('dashboard')
     else:
-        form_pedido = PedidoForm()
+        form_pedido = PedidoForm(user=request.user)
         form_anexo = AnexoForm()
 
     return render(request, 'pedidos/cadastro_pedido.html', {
@@ -50,17 +54,13 @@ def novo_pedido(request):
 
 @login_required
 def editar_pedido(request, id):
-    # Mesma regra de segurança
     eh_equipe_interna = request.user.is_superuser or request.user.tipo_usuario in ['GESTOR', 'CADISTA']
 
     if eh_equipe_interna:
-        # Gestão pode tentar buscar QUALQUER id
         pedido = get_object_or_404(Pedido, id=id)
     else:
-        # Dentista só pode buscar se o ID for dele. Se tentar ID de outro, dá 404.
         pedido = get_object_or_404(Pedido, id=id, dentista=request.user)
 
-    # Lógica para saber se pode editar o status (só equipe interna)
     pode_editar_status = eh_equipe_interna
 
     if request.method == 'POST' and pode_editar_status:
@@ -76,7 +76,6 @@ def editar_pedido(request, id):
     })
 
 def cadastrar(request):
-    # Se já estiver logado, manda pro Dashboard
     if request.user.is_authenticated:
         return redirect('dashboard')
 
@@ -85,7 +84,7 @@ def cadastrar(request):
 
         if form.is_valid():
             user = form.save(commit=False)
-            user.cadastro_confirmado = False  # <--- O campo novo do modelo
+            user.cadastro_confirmado = False
             user.save()
 
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
@@ -93,11 +92,9 @@ def cadastrar(request):
             messages.success(request, 'Cadastro realizado! Seu acesso está limitado até a validação do CRO.')
             return redirect('dashboard')
         else:
-            # Se o form for inválido, o 'form' com erros já existe aqui
             pass 
             
     else:
-        # Se for GET (abrir a página), cria um form vazio
         form = CadastroForm()
 
     return render(request, 'pedidos/cadastro_usuario.html', {'form': form})
@@ -132,13 +129,17 @@ def criar_usuario(request):
         return redirect('dashboard')
 
     if request.method == 'POST':
-        form = CriarFuncionarioForm(request.POST)
+        form = CadastroForm(request.POST)
+        
         if form.is_valid():
             novo_usuario = form.save()
+            novo_usuario.cadastro_confirmado = True
+            novo_usuario.save()
+
             messages.success(request, f'Usuário {novo_usuario.username} criado com sucesso!')
             return redirect('lista_usuarios')
-    else:
-        form = CriarFuncionarioForm()
+    else:   
+        form = CadastroForm()
 
     return render(request, 'pedidos/criar_usuario_interno.html', {'form': form})
 
@@ -219,12 +220,11 @@ def deletar_permanente(request, id):
     return render(request, 'pedidos/confirmar_exclusao_permanente.html', {'usuario_alvo': usuario})
 
 def eh_gestor(user):
-    return user.is_authenticated and (user.tipo_usuario == 'Gestor' or user.is_superuser)
+    return user.is_authenticated and (user.tipo_usuario == 'GESTOR' or user.is_superuser)
 
 @login_required
 @user_passes_test(eh_gestor)
 def lista_aprovacao(request):
-    # Filtra quem NÃO tem o cadastro confirmado
     pendentes = Usuario.objects.filter(cadastro_confirmado=False).exclude(is_superuser=True)
     return render(request, 'pedidos/lista_aprovacao.html', {'pendentes': pendentes})
 
@@ -233,7 +233,7 @@ def lista_aprovacao(request):
 def aprovar_usuario(request, user_id):
     usuario = get_object_or_404(Usuario, id=user_id)
     
-    usuario.cadastro_confirmado = True # <--- Agora mudamos este campo
+    usuario.cadastro_confirmado = True
     usuario.save()
     
     messages.success(request, f'Dentista {usuario.username} autorizado com sucesso!')
@@ -243,6 +243,6 @@ def aprovar_usuario(request, user_id):
 @user_passes_test(eh_gestor)
 def rejeitar_usuario(request, user_id):
     usuario = get_object_or_404(Usuario, id=user_id)
-    usuario.delete() # Exclui a conta solicitada
+    usuario.delete()
     messages.warning(request, f'Solicitação de {usuario.username} foi rejeitada e excluída.')
     return redirect('lista_aprovacao')

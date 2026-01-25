@@ -1,35 +1,162 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-    <title>Novo Usuário Interno</title>
+    <meta charset="UTF-8">
+    <title>Novo Usuário Interno | ProteseFlow</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        body { background-color: #f8f9fa; }
+        .card-header-custom {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
 </head>
-<body class="container mt-5" style="max-width: 600px;">
-    
-    <h3 class="mb-4">➕ Adicionar Novo Usuário</h3>
-    
-    <div class="card shadow p-4">
+<body class="py-5">
+
+    <div class="container" style="max-width: 900px;">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold text-primary mb-0">
+                    <i class="bi bi-person-plus-fill me-2"></i>Novo Usuário Interno
+                </h2>
+                <p class="text-muted mb-0">Adicione gestores, funcionários ou dentistas manualmente.</p>
+            </div>
+            <a href="{% url 'lista_usuarios' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+
         <form method="post">
             {% csrf_token %}
-            
-            {% for field in form %}
-            <div class="mb-3">
-                <label class="form-label fw-bold">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}
-                <small class="text-muted d-block">{{ field.help_text }}</small>
-                {% endif %}
-                {% for error in field.errors %}
-                <div class="text-danger small">{{ error }}</div>
-                {% endfor %}
-            </div>
-            {% endfor %}
 
-            <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-success">Criar Usuário</button>
-                <a href="{% url 'lista_usuarios' %}" class="btn btn-outline-secondary">Cancelar</a>
+            <div class="row g-4">
+                
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100 border-0">
+                        <div class="card-header card-header-custom bg-dark">
+                            <i class="bi bi-shield-lock me-2"></i> Credenciais de Acesso
+                        </div>
+                        <div class="card-body p-4">
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Nome de Usuário (Login)*</label>
+                                {{ form.username }}
+                                {% if form.username.errors %}
+                                    <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text small">Será usado para logar no sistema.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Senha*</label>
+                                {{ form.password1 }} {% if form.password1.errors %}
+                                    <div class="text-danger small mt-1">{{ form.password1.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Confirmar Senha*</label>
+                                {{ form.password2 }}
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100 border-0">
+                        <div class="card-header card-header-custom">
+                            <i class="bi bi-person-badge me-2"></i> Perfil e Função
+                        </div>
+                        <div class="card-body p-4">
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-primary">Função no Sistema*</label>
+                                {{ form.tipo_usuario }}
+                                <div class="form-text">Define o que este usuário poderá ver.</div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <label class="form-label fw-bold">Nome Completo</label>
+                                    {{ form.first_name }}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">E-mail</label>
+                                {{ form.email }}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Telefone / WhatsApp</label>
+                                {{ form.telefone }}
+                            </div>
+
+                            <div id="div_cro" class="bg-light p-3 border rounded border-success" style="display: none;">
+                                <label class="form-label fw-bold text-success">
+                                    <i class="bi bi-postcard-heart me-1"></i> Número do CRO
+                                </label>
+                                {{ form.cro }}
+                                <small class="text-success d-block mt-1">Obrigatório para contas do tipo Dentista.</small>
+                                {% if form.cro.errors %}
+                                    <div class="text-danger small mt-1">{{ form.cro.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
             </div>
+
+            <div class="d-grid gap-2 mt-4 mb-5">
+                <button type="submit" class="btn btn-success btn-lg shadow fw-bold text-uppercase">
+                    <i class="bi bi-check-circle-fill me-2"></i> Cadastrar Usuário
+                </button>
+            </div>
+
         </form>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectTipo = document.querySelector('select[name="tipo_usuario"]');
+            const divCro = document.getElementById('div_cro');
+            const inputCro = document.querySelector('input[name="cro"]');
+
+            function toggleCro() {
+                if (selectTipo && selectTipo.value === 'DENTISTA') {
+                    divCro.style.display = 'block';
+                } else {
+                    divCro.style.display = 'none';
+                    if(inputCro) inputCro.value = '';
+                }
+            }
+
+            if (selectTipo) {
+                toggleCro();
+                selectTipo.addEventListener('change', toggleCro);
+            }
+        });
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const btn = this.querySelector('button[type="submit"]');
+                
+                if (this.checkValidity()) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+                }
+            });
+        }
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -43,13 +43,26 @@ class Pedido(models.Model):
     
     nome_paciente = models.CharField(max_length=100)
     
-    tipo_servico = models.CharField(max_length=100, help_text="Ex: Coroa, Faceta, Protocolo")
     dentes = models.CharField(max_length=100, help_text="Ex: 11, 12, 21 (Use vírgulas)")
-    cor = models.CharField(max_length=50, blank=True, null=True, help_text="Ex: A2, BL3")
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDENTE')
     data_criacao = models.DateTimeField(auto_now_add=True)
     data_entrega_prevista = models.DateField(blank=True, null=True)
+
+    SEXO_CHOICES = (
+        ('M', 'Masculino'),
+        ('F', 'Feminino'),
+    )
+
+    nome_paciente = models.CharField(max_length=100, verbose_name="Nome do Paciente")
+    sexo = models.CharField(max_length=1, choices=SEXO_CHOICES, default='M', verbose_name="Sexo")
+    
+    elementos = models.CharField(max_length=200, verbose_name="Dentes Selecionados", blank=True)
+    
+    tipo_servico = models.CharField(max_length=100, verbose_name="Tipo de Serviço")
+    cor = models.CharField(max_length=50, blank=True, null=True, verbose_name="Cor (Ex: A2)")
+    
+    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações / Detalhes")
 
     def __str__(self):
         return f"Pedido #{self.id} - {self.nome_paciente}"
