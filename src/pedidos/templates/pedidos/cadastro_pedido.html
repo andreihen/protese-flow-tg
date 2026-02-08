@@ -9,7 +9,6 @@
     <style>
         body { background-color: #f8f9fa; }
         
-        /* Paleta de Ferramentas */
         .toolbar-servicos {
             display: flex;
             gap: 10px;
@@ -25,7 +24,7 @@
             align-items: center;
             gap: 5px;
             font-weight: 500;
-            opacity: 0.7; /* Um pouco apagado quando não ativo */
+            opacity: 0.7;
         }
 
         .btn-servico:hover { transform: translateY(-2px); opacity: 1; }
@@ -38,7 +37,6 @@
             opacity: 1;
         }
 
-        /* Cores dos Serviços - PADRONIZADAS */
         .cor-coroa { background-color: #ffc107; color: #000; }
         .cor-faceta { background-color: #0dcaf0; color: #000; }
         .cor-provisorio { background-color: #fd7e14; color: #fff; }
@@ -230,8 +228,8 @@
     let corAtual = '#ffc107'; 
     let mapaDentes = {}; 
     const inputElementos = document.getElementById('id_elementos');
-    const inputTipoServico = document.getElementById('id_tipo_servico'); // O campo automático
-    const displayResumo = document.getElementById('displayResumo'); // O badge visual
+    const inputTipoServico = document.getElementById('id_tipo_servico');
+    const displayResumo = document.getElementById('displayResumo');
 
     function selecionarFerramenta(nome, cor, elementoBtn) {
         ferramentaAtual = nome;
@@ -240,29 +238,26 @@
         elementoBtn.classList.add('active');
     }
 
-    // Função que cria o resumo automático
     function atualizarResumo() {
         if (Object.keys(mapaDentes).length === 0) {
-            inputTipoServico.value = "Nenhum selecionado"; // Garante que o campo não vá vazio
+            inputTipoServico.value = "Nenhum selecionado";
             displayResumo.innerText = "Selecione dentes no mapa";
             return;
         }
 
-        // Conta os serviços (Ex: {COROA: 2, FACETA: 1})
         let contagem = {};
         for (let dente in mapaDentes) {
             let servico = mapaDentes[dente];
             contagem[servico] = (contagem[servico] || 0) + 1;
         }
 
-        // Cria texto bonito: "2x COROA, 1x FACETA"
         let textoResumo = Object.entries(contagem)
             .map(([servico, qtd]) => `${qtd}x ${servico}`)
             .join(', ');
 
-        inputTipoServico.value = textoResumo; // Preenche o campo oculto pro banco
-        displayResumo.innerText = textoResumo; // Mostra pro usuário
-        displayResumo.classList.add('bg-primary', 'text-white'); // Efeito visual
+        inputTipoServico.value = textoResumo;
+        displayResumo.innerText = textoResumo;
+        displayResumo.classList.add('bg-primary', 'text-white');
         displayResumo.classList.remove('bg-light', 'text-dark');
     }
 
@@ -282,15 +277,12 @@
                     parteVisual.style.fill = corAtual;
                 }
                 
-                // Salva JSON técnico
                 inputElementos.value = JSON.stringify(mapaDentes);
                 
-                // Atualiza o Texto Humano
                 atualizarResumo();
             });
         });
         
-        // Inicia o campo com valor padrão para não dar erro
         inputTipoServico.value = "Nenhum selecionado";
     });
 </script>

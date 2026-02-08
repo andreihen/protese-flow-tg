@@ -34,9 +34,9 @@ class Usuario(AbstractUser):
 class Pedido(models.Model):
     STATUS_CHOICES = (
         ('PENDENTE', 'Pendente'),
-        ('EM_PRODUCAO', 'Iniciado'),   # Antigo "Em Produção"
-        ('CONCLUIDO', 'Finalizado'),   # Antigo "Concluído"
-        ('APROVADO', 'Aprovado'),      # NOVO!
+        ('EM_PRODUCAO', 'Iniciado'),
+        ('CONCLUIDO', 'Finalizado'),
+        ('APROVADO', 'Aprovado'),
     )
 
     dentista = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='pedidos')

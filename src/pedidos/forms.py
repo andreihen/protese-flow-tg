@@ -39,21 +39,18 @@ class CadastroForm(UserCreationForm):
 class PedidoForm(forms.ModelForm):
     class Meta:
         model = Pedido
-        # REMOVA 'dentista' DESSA LISTA SE ESTIVER AQUI
         fields = ['nome_paciente', 'sexo', 'tipo_servico', 'cor', 'data_entrega_prevista', 'observacoes', 'elementos']
         
         widgets = {
             'sexo': forms.RadioSelect(attrs={'class': 'form-check-input'}),
             'data_entrega_prevista': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'observacoes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
-            # ... outros widgets ...
         }
     def __init__(self, *args, **kwargs):
-        # Removemos o pop('user') pois não precisamos mais dele na view
         super().__init__(*args, **kwargs)
         
         for field_name, field in self.fields.items():
-            if field_name != 'sexo': # Sexo já tem classe própria
+            if field_name != 'sexo':
                 field.widget.attrs['class'] = 'form-control'
 
 class AnexoForm(forms.ModelForm):
