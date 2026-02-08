@@ -1,67 +1,101 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Detalhes do Pedido #{{ pedido.id }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light container mt-5">
+{% extends 'base.html' %}
 
-    <div class="card shadow">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Pedido #{{ pedido.id }} - {{ pedido.nome_paciente }}</h4>
-            <a href="/dashboard/" class="btn btn-light btn-sm">Voltar</a>
+{% block content %}
+<div class="container mt-4" style="max-width: 800px;">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary fw-bold mb-0">✏️ Editar Pedido #{{ pedido.id }}</h2>
+            <p class="text-muted small">Altere as informações do caso.</p>
         </div>
-        
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>📋 Dados Técnicos</h5>
-                    <p><strong>Dentista:</strong> {{ pedido.dentista.username }}</p>
-                    <p><strong>Serviço:</strong> {{ pedido.tipo_servico }}</p>
-                    <p><strong>Dentes:</strong> {{ pedido.dentes }}</p>
-                    <p><strong>Cor:</strong> {{ pedido.cor }}</p>
-                    <p><strong>Prazo:</strong> {{ pedido.data_entrega_prevista }}</p>
-                </div>
-                <div class="col-md-6">
-                    <h5>📂 Arquivos (STL/PLY)</h5>
-                    <ul class="list-group">
-                        {% for anexo in pedido.anexos.all %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ anexo.descricao }}
-                            <a href="{{ anexo.arquivo.url }}" class="btn btn-sm btn-outline-primary" download>
-                                ⬇ Baixar Arquivo
-                            </a>
-                        </li>
-                        {% empty %}
-                        <li class="list-group-item text-muted">Nenhum arquivo anexado.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-            <hr>
-            <div class="bg-light p-3 rounded border">
-                <h5>⚙️ Status do Pedido</h5>
-                {% if pode_editar_status %}
-                    <form method="post" class="d-flex align-items-center gap-3">
-                        {% csrf_token %}
-                        <select name="status" class="form-select w-auto">
-                            <option value="PENDENTE" {% if pedido.status == 'PENDENTE' %}selected{% endif %}>Pendente</option>
-                            <option value="EM_PRODUCAO" {% if pedido.status == 'EM_PRODUCAO' %}selected{% endif %}>Em Produção</option>
-                            <option value="CONCLUIDO" {% if pedido.status == 'CONCLUIDO' %}selected{% endif %}>Concluído</option>
-                            <option value="CANCELADO" {% if pedido.status == 'CANCELADO' %}selected{% endif %}>Cancelado</option>
-                        </select>
-                        <button type="submit" class="btn btn-success">Atualizar Status</button>
-                    </form>
-                {% else %}
-                    <div class="alert alert-info d-inline-block mb-0">
-                        Status Atual: <strong>{{ pedido.get_status_display }}</strong>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Voltar
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+            
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                {% if form.errors %}
+                    <div class="alert alert-danger mb-4">
+                        <ul class="mb-0 small">
+                            {% for field, errors in form.errors.items %}
+                                <li><strong>{{ field|title }}:</strong> {{ errors|join:", " }}</li>
+                            {% endfor %}
+                        </ul>
                     </div>
-                    <p class="text-muted small mt-2 mb-0">
-                        * Apenas a gestão pode alterar o status do pedido.
-                    </p>
                 {% endif %}
-            </div>
+
+                {% if eh_equipe_interna %}
+                <div class="alert alert-warning border-warning d-flex align-items-center p-3 mb-4">
+                    <i class="bi bi-shield-lock-fill fs-3 me-3 text-warning-emphasis"></i>
+                    <div class="w-100">
+                        <label class="fw-bold text-warning-emphasis small text-uppercase mb-1">Alterar Status (Acesso Gestor)</label>
+                        <select name="status_extra" class="form-select border-warning fw-bold text-dark">
+                            {% for codigo, nome in status_choices %}
+                                <option value="{{ codigo }}" {% if pedido.status == codigo %}selected{% endif %}>
+                                    {{ nome }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold small text-secondary">Nome do Paciente</label>
+                        {{ form.nome_paciente }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-secondary">Entrega Prevista</label>
+                        {{ form.data_entrega_prevista }}
+                    </div>
+
+                    <div class="col-md-6">
+                         <label class="form-label fw-bold small text-secondary">Tipo de Serviço</label>
+                         {{ form.tipo_servico }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-secondary">Sexo</label>
+                        <div class="border rounded px-3 py-2 bg-light">
+                            {% for radio in form.sexo %}
+                                <div class="form-check form-check-inline mb-0">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label">{{ radio.choice_label }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-bold small text-secondary">Observações</label>
+                        {{ form.observacoes }}
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{% url 'dashboard' %}" class="btn btn-light border">Cancelar</a>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">
+                        <i class="bi bi-check-lg me-1"></i> Salvar Alterações
+                    </button>
+                </div>
+
+            </form>
         </div>
     </div>
-</body>
-</html>
+</div>
+
+<script>
+    // Garante estilo Bootstrap nos inputs do Django
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+        if (!el.classList.contains('form-check-input') && !el.classList.contains('form-select')) {
+            el.classList.add('form-control');
+        }
+    });
+</script>
+{% endblock %}

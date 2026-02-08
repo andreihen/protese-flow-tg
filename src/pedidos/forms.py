@@ -12,7 +12,7 @@ class CadastroForm(UserCreationForm):
 
     class Meta:
         model = Usuario
-        fields = ['username', 'email', 'telefone', 'cro', 'tipo_usuario', 'first_name']
+        fields = ['username', 'email', 'telefone', 'cro', 'first_name']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -39,30 +39,22 @@ class CadastroForm(UserCreationForm):
 class PedidoForm(forms.ModelForm):
     class Meta:
         model = Pedido
-        fields = ['nome_paciente', 'sexo', 'tipo_servico', 'cor', 'data_entrega_prevista', 'observacoes', 'elementos', 'dentista']
+        # REMOVA 'dentista' DESSA LISTA SE ESTIVER AQUI
+        fields = ['nome_paciente', 'sexo', 'tipo_servico', 'cor', 'data_entrega_prevista', 'observacoes', 'elementos']
+        
         widgets = {
-            'data_entrega_prevista': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'nome_paciente': forms.TextInput(attrs={'class': 'form-control'}),
-            'tipo_servico': forms.TextInput(attrs={'class': 'form-control'}),
-            'dentes': forms.TextInput(attrs={'class': 'form-control'}),
-            'cor': forms.TextInput(attrs={'class': 'form-control'}),
-            'dentista': forms.Select(attrs={'class': 'form-control'}),
             'sexo': forms.RadioSelect(attrs={'class': 'form-check-input'}),
-            'observacoes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control', 'placeholder': 'Ex: Antagonista enviado, atenção na oclusão...'}),
-            'elementos': forms.HiddenInput(),
-
+            'data_entrega_prevista': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'observacoes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            # ... outros widgets ...
         }
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None) 
-        super(PedidoForm, self).__init__(*args, **kwargs)
-
-        if user and (user.tipo_usuario == 'GESTOR' or user.is_superuser):
-            self.fields['dentista'].queryset = Usuario.objects.filter(tipo_usuario='DENTISTA')
-            self.fields['dentista'].label = "Selecione o Dentista Solicitante"
-            self.fields['dentista'].required = True
+        # Removemos o pop('user') pois não precisamos mais dele na view
+        super().__init__(*args, **kwargs)
         
-        else:
-            self.fields.pop('dentista')
+        for field_name, field in self.fields.items():
+            if field_name != 'sexo': # Sexo já tem classe própria
+                field.widget.attrs['class'] = 'form-control'
 
 class AnexoForm(forms.ModelForm):
     class Meta:

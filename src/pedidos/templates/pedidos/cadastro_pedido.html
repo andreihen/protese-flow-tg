@@ -7,96 +7,188 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     
     <style>
-        .odontograma {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            border: 2px dashed #dee2e6;
-        }
+        body { background-color: #f8f9fa; }
         
-        .arcada {
+        /* Paleta de Ferramentas */
+        .toolbar-servicos {
             display: flex;
-            gap: 5px;
+            gap: 10px;
+            flex-wrap: wrap;
             justify-content: center;
+            margin-bottom: 20px;
         }
 
-        .dente {
-            width: 40px;
-            height: 40px;
-            border: 2px solid #adb5bd;
-            border-radius: 50%;
+        .btn-servico {
+            border: 2px solid transparent;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 5px;
+            font-weight: 500;
+            opacity: 0.7; /* Um pouco apagado quando não ativo */
+        }
+
+        .btn-servico:hover { transform: translateY(-2px); opacity: 1; }
+
+        .btn-servico.active {
+            transform: scale(1.05);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            border-color: #333;
             font-weight: bold;
-            color: #6c757d;
+            opacity: 1;
+        }
+
+        /* Cores dos Serviços - PADRONIZADAS */
+        .cor-coroa { background-color: #ffc107; color: #000; }
+        .cor-faceta { background-color: #0dcaf0; color: #000; }
+        .cor-provisorio { background-color: #fd7e14; color: #fff; }
+        .cor-implante { background-color: #6f42c1; color: #fff; }
+        .cor-borracha { background-color: #e9ecef; color: #333; border: 1px solid #adb5bd; }
+
+        .svg-dente {
             cursor: pointer;
-            transition: all 0.2s;
-            background-color: white;
-            user-select: none;
+            transition: fill 0.2s;
+            stroke: #495057;
+            stroke-width: 1;
         }
-
-        .dente:hover {
-            border-color: #0d6efd;
-            background-color: #e7f1ff;
-        }
-
-        .dente.selecionado {
-            background-color: #0d6efd;
-            color: white;
-            border-color: #0d6efd;
-            transform: scale(1.1);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .divisor {
-            width: 20px;
-        }
+        .svg-dente:hover { stroke: #000; stroke-width: 2; }
+        .svg-text { font-size: 10px; fill: #6c757d; pointer-events: none; }
     </style>
 </head>
-<body class="bg-light py-4">
+<body class="py-4">
 
-<div class="container" style="max-width: 900px;">
+<div class="container" style="max-width: 1000px;">
     
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-primary fw-bold">🦷 Novo Pedido</h2>
-        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Cancelar</a>
+        <div>
+            <h2 class="text-primary fw-bold mb-0">🦷 Novo Pedido</h2>
+            <p class="text-muted small">Configure o caso clicando no odontograma.</p>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary shadow-sm">
+            <i class="bi bi-arrow-left me-1"></i> Voltar
+        </a>
     </div>
 
     <form method="post" enctype="multipart/form-data" id="formPedido">
         {% csrf_token %}
-        
-        <div class="card shadow-sm mb-4 border-0">
-            <div class="card-header bg-white border-bottom py-3">
-                <h5 class="mb-0 text-primary"><i class="bi bi-person-vcard me-2"></i>1. Dados do Paciente</h5>
-            </div>
-            <div class="card-body p-4">
-                
-                {% if form_pedido.dentista %}
-                <div class="alert alert-warning mb-3">
-                    <label class="fw-bold">Dentista Solicitante:</label>
-                    {{ form_pedido.dentista }}
-                </div>
-                {% endif %}
 
-                <div class="row">
-                    <div class="col-md-8 mb-3">
-                        <label class="form-label fw-bold">Nome do Paciente</label>
+        {% if form_pedido.errors or form_anexo.errors %}
+            <div class="alert alert-danger shadow-sm mb-4">
+                <h6 class="fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Atenção:</h6>
+                <ul class="mb-0 small">
+                    {% for field, errors in form_pedido.errors.items %}
+                        <li><strong>{{ field|title }}:</strong> {{ errors|join:", " }}</li>
+                    {% endfor %}
+                    {% for field, errors in form_anexo.errors.items %}
+                        <li><strong>Anexo:</strong> {{ errors|join:", " }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        
+        <input type="hidden" name="elementos" id="id_elementos">
+        
+        <input type="hidden" name="tipo_servico" id="id_tipo_servico" value="Aguardando Seleção...">
+
+
+        <div class="card shadow-sm mb-4 border-0">
+            <div class="card-header bg-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-grid-3x3-gap me-2"></i>1. O que será feito?</h5>
+                    <span class="badge bg-light text-dark border p-2" id="displayResumo">
+                        Nenhum dente selecionado
+                    </span>
+                </div>
+            </div>
+            <div class="card-body text-center user-select-none pt-4">
+                
+                <div class="toolbar-servicos">
+                    <button type="button" class="btn btn-servico cor-coroa active" onclick="selecionarFerramenta('COROA', '#ffc107', this)">
+                        <i class="bi bi-gem"></i> Coroa
+                    </button>
+                    <button type="button" class="btn btn-servico cor-faceta" onclick="selecionarFerramenta('FACETA', '#0dcaf0', this)">
+                        <i class="bi bi-stars"></i> Faceta
+                    </button>
+                    <button type="button" class="btn btn-servico cor-provisorio" onclick="selecionarFerramenta('PROVISORIO', '#fd7e14', this)">
+                        <i class="bi bi-hourglass-split"></i> Provisório
+                    </button>
+                    <button type="button" class="btn btn-servico cor-implante" onclick="selecionarFerramenta('IMPLANTE', '#6f42c1', this)">
+                        <i class="bi bi-screw"></i> Implante
+                    </button>
+                    <button type="button" class="btn btn-servico cor-borracha" onclick="selecionarFerramenta('LIMPAR', '#ffffff', this)">
+                        <i class="bi bi-eraser"></i> Borracha
+                    </button>
+                </div>
+
+                <div class="border rounded p-4 bg-white d-inline-block shadow-sm">
+                    <svg width="600" height="300" viewBox="0 0 600 300" id="svgOdontograma">
+                        <defs>
+                            <path id="shapeDente" d="M10,5 Q20,0 30,5 Q40,15 35,35 Q30,50 20,50 Q10,50 5,35 Q0,15 10,5 Z" />
+                        </defs>
+
+                        <g id="superior" transform="translate(20, 20)">
+                            <g transform="translate(0, 30)" class="grupo-dente" data-num="18"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">18</text></g>
+                            <g transform="translate(35, 20)" class="grupo-dente" data-num="17"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">17</text></g>
+                            <g transform="translate(70, 15)" class="grupo-dente" data-num="16"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">16</text></g>
+                            <g transform="translate(105, 10)" class="grupo-dente" data-num="15"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">15</text></g>
+                            <g transform="translate(140, 10)" class="grupo-dente" data-num="14"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">14</text></g>
+                            <g transform="translate(175, 15)" class="grupo-dente" data-num="13"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">13</text></g>
+                            <g transform="translate(210, 20)" class="grupo-dente" data-num="12"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">12</text></g>
+                            <g transform="translate(245, 25)" class="grupo-dente" data-num="11"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">11</text></g>
+                            <g transform="translate(290, 25)" class="grupo-dente" data-num="21"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">21</text></g>
+                            <g transform="translate(325, 20)" class="grupo-dente" data-num="22"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">22</text></g>
+                            <g transform="translate(360, 15)" class="grupo-dente" data-num="23"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">23</text></g>
+                            <g transform="translate(395, 10)" class="grupo-dente" data-num="24"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">24</text></g>
+                            <g transform="translate(430, 10)" class="grupo-dente" data-num="25"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">25</text></g>
+                            <g transform="translate(465, 15)" class="grupo-dente" data-num="26"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">26</text></g>
+                            <g transform="translate(500, 20)" class="grupo-dente" data-num="27"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">27</text></g>
+                            <g transform="translate(535, 30)" class="grupo-dente" data-num="28"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">28</text></g>
+                        </g>
+
+                        <g id="inferior" transform="translate(20, 120)">
+                            <g transform="translate(0, 0)" class="grupo-dente" data-num="48"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">48</text></g>
+                            <g transform="translate(35, 10)" class="grupo-dente" data-num="47"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">47</text></g>
+                            <g transform="translate(70, 15)" class="grupo-dente" data-num="46"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">46</text></g>
+                            <g transform="translate(105, 20)" class="grupo-dente" data-num="45"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">45</text></g>
+                            <g transform="translate(140, 20)" class="grupo-dente" data-num="44"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">44</text></g>
+                            <g transform="translate(175, 15)" class="grupo-dente" data-num="43"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">43</text></g>
+                            <g transform="translate(210, 10)" class="grupo-dente" data-num="42"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">42</text></g>
+                            <g transform="translate(245, 5)" class="grupo-dente" data-num="41"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">41</text></g>
+                            <g transform="translate(290, 5)" class="grupo-dente" data-num="31"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">31</text></g>
+                            <g transform="translate(325, 10)" class="grupo-dente" data-num="32"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">32</text></g>
+                            <g transform="translate(360, 15)" class="grupo-dente" data-num="33"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">33</text></g>
+                            <g transform="translate(395, 20)" class="grupo-dente" data-num="34"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">34</text></g>
+                            <g transform="translate(430, 20)" class="grupo-dente" data-num="35"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">35</text></g>
+                            <g transform="translate(465, 15)" class="grupo-dente" data-num="36"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">36</text></g>
+                            <g transform="translate(500, 10)" class="grupo-dente" data-num="37"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">37</text></g>
+                            <g transform="translate(535, 0)" class="grupo-dente" data-num="38"><use href="#shapeDente" class="svg-dente" fill="#fff" /><text x="12" y="30" class="svg-text">38</text></g>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4 border-0">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-clipboard-data me-2"></i>2. Informações</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold text-secondary small">NOME DO PACIENTE</label>
                         {{ form_pedido.nome_paciente }}
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold">Sexo</label>
-                        <div class="d-flex gap-3 mt-2">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-secondary small">DATA DE ENTREGA</label>
+                        {{ form_pedido.data_entrega_prevista }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold text-secondary small">SEXO</label>
+                        <div class="border rounded px-3 py-2 bg-light">
                             {% for radio in form_pedido.sexo %}
-                                <div class="form-check">
+                                <div class="form-check form-check-inline mb-0">
                                     {{ radio.tag }}
-                                    <label class="form-check-label" for="{{ radio.id_for_label }}">
-                                        {{ radio.choice_label }}
-                                    </label>
+                                    <label class="form-check-label">{{ radio.choice_label }}</label>
                                 </div>
                             {% endfor %}
                         </div>
@@ -105,100 +197,20 @@
             </div>
         </div>
 
-        <div class="card shadow-sm mb-4 border-0">
-            <div class="card-header bg-white border-bottom py-3">
-                <h5 class="mb-0 text-primary"><i class="bi bi-tools me-2"></i>2. O Serviço</h5>
-            </div>
-            <div class="card-body p-4">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Tipo de Prótese</label>
-                        {{ form_pedido.tipo_servico }}
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Cor / Escala</label>
-                        {{ form_pedido.cor }}
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold">Data de Entrega</label>
-                        {{ form_pedido.data_entrega_prevista }}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card shadow-sm mb-4 border-0">
-            <div class="card-header bg-white border-bottom py-3">
-                <h5 class="mb-0 text-primary"><i class="bi bi-grid-3x3-gap me-2"></i>3. Selecione os Dentes</h5>
-            </div>
-            <div class="card-body p-4 text-center">
-                <p class="text-muted mb-3">Clique nos dentes para selecionar. Eles ficarão <span class="text-primary fw-bold">AZUIS</span>.</p>
-                
-                {{ form_pedido.elementos }} 
-
-                <div class="odontograma">
-                    <div class="text-muted small">SUPERIOR</div>
-                    <div class="arcada">
-                        <div class="dente" data-num="18">18</div>
-                        <div class="dente" data-num="17">17</div>
-                        <div class="dente" data-num="16">16</div>
-                        <div class="dente" data-num="15">15</div>
-                        <div class="dente" data-num="14">14</div>
-                        <div class="dente" data-num="13">13</div>
-                        <div class="dente" data-num="12">12</div>
-                        <div class="dente" data-num="11">11</div>
-                        
-                        <div class="divisor"></div> <div class="dente" data-num="21">21</div>
-                        <div class="dente" data-num="22">22</div>
-                        <div class="dente" data-num="23">23</div>
-                        <div class="dente" data-num="24">24</div>
-                        <div class="dente" data-num="25">25</div>
-                        <div class="dente" data-num="26">26</div>
-                        <div class="dente" data-num="27">27</div>
-                        <div class="dente" data-num="28">28</div>
-                    </div>
-
-                    <div class="arcada mt-3">
-                        <div class="dente" data-num="48">48</div>
-                        <div class="dente" data-num="47">47</div>
-                        <div class="dente" data-num="46">46</div>
-                        <div class="dente" data-num="45">45</div>
-                        <div class="dente" data-num="44">44</div>
-                        <div class="dente" data-num="43">43</div>
-                        <div class="dente" data-num="42">42</div>
-                        <div class="dente" data-num="41">41</div>
-
-                        <div class="divisor"></div>
-
-                        <div class="dente" data-num="31">31</div>
-                        <div class="dente" data-num="32">32</div>
-                        <div class="dente" data-num="33">33</div>
-                        <div class="dente" data-num="34">34</div>
-                        <div class="dente" data-num="35">35</div>
-                        <div class="dente" data-num="36">36</div>
-                        <div class="dente" data-num="37">37</div>
-                        <div class="dente" data-num="38">38</div>
-                    </div>
-                    <div class="text-muted small">INFERIOR</div>
-                </div>
-            </div>
-        </div>
-
         <div class="card shadow-sm mb-5 border-0">
-            <div class="card-header bg-white border-bottom py-3">
-                <h5 class="mb-0 text-primary"><i class="bi bi-paperclip me-2"></i>4. Arquivos e Detalhes</h5>
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-paperclip me-2"></i>3. Arquivos e Detalhes</h5>
             </div>
-            <div class="card-body p-4">
-                
+            <div class="card-body">
                 <div class="mb-4">
-                    <label class="form-label fw-bold">Arquivo do Escaneamento (STL/PLY)</label>
-                    <div class="input-group input-group-lg">
+                    <label class="form-label fw-bold text-secondary small">ARQUIVO 3D (STL/PLY)</label>
+                    <div class="input-group">
                         {{ form_anexo.arquivo }}
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Observações / Instruções Especiais</label>
+                    <label class="form-label fw-bold text-secondary small">OBSERVAÇÕES ADICIONAIS</label>
                     {{ form_pedido.observacoes }}
                 </div>
             </div>
@@ -206,7 +218,7 @@
 
         <div class="d-grid pb-5">
             <button type="submit" class="btn btn-success btn-lg py-3 fw-bold shadow">
-                ✅ ENVIAR PEDIDO PARA O LABORATÓRIO
+                <i class="bi bi-check-circle-fill me-2"></i> CONFIRMAR E ENVIAR PEDIDO
             </button>
         </div>
 
@@ -214,29 +226,72 @@
 </div>
 
 <script>
+    let ferramentaAtual = 'COROA';
+    let corAtual = '#ffc107'; 
+    let mapaDentes = {}; 
+    const inputElementos = document.getElementById('id_elementos');
+    const inputTipoServico = document.getElementById('id_tipo_servico'); // O campo automático
+    const displayResumo = document.getElementById('displayResumo'); // O badge visual
+
+    function selecionarFerramenta(nome, cor, elementoBtn) {
+        ferramentaAtual = nome;
+        corAtual = cor;
+        document.querySelectorAll('.btn-servico').forEach(btn => btn.classList.remove('active'));
+        elementoBtn.classList.add('active');
+    }
+
+    // Função que cria o resumo automático
+    function atualizarResumo() {
+        if (Object.keys(mapaDentes).length === 0) {
+            inputTipoServico.value = "Nenhum selecionado"; // Garante que o campo não vá vazio
+            displayResumo.innerText = "Selecione dentes no mapa";
+            return;
+        }
+
+        // Conta os serviços (Ex: {COROA: 2, FACETA: 1})
+        let contagem = {};
+        for (let dente in mapaDentes) {
+            let servico = mapaDentes[dente];
+            contagem[servico] = (contagem[servico] || 0) + 1;
+        }
+
+        // Cria texto bonito: "2x COROA, 1x FACETA"
+        let textoResumo = Object.entries(contagem)
+            .map(([servico, qtd]) => `${qtd}x ${servico}`)
+            .join(', ');
+
+        inputTipoServico.value = textoResumo; // Preenche o campo oculto pro banco
+        displayResumo.innerText = textoResumo; // Mostra pro usuário
+        displayResumo.classList.add('bg-primary', 'text-white'); // Efeito visual
+        displayResumo.classList.remove('bg-light', 'text-dark');
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
-        const dentes = document.querySelectorAll('.dente');
-        const inputElementos = document.getElementById('id_elementos');
-        let selecionados = [];
+        const dentes = document.querySelectorAll('.grupo-dente');
 
-        dentes.forEach(dente => {
-            dente.addEventListener('click', function() {
+        dentes.forEach(grupo => {
+            grupo.addEventListener('click', function() {
                 const numero = this.getAttribute('data-num');
+                const parteVisual = this.querySelector('.svg-dente');
 
-                if (this.classList.contains('selecionado')) {
-                    this.classList.remove('selecionado');
-                    selecionados = selecionados.filter(item => item !== numero);
+                if (ferramentaAtual === 'LIMPAR') {
+                    delete mapaDentes[numero];
+                    parteVisual.style.fill = '#ffffff';
                 } else {
-                    this.classList.add('selecionado');
-                    selecionados.push(numero);
+                    mapaDentes[numero] = ferramentaAtual;
+                    parteVisual.style.fill = corAtual;
                 }
-
-                selecionados.sort();
-                inputElementos.value = selecionados.join(', ');
                 
-                console.log("Dentes selecionados: ", inputElementos.value);
+                // Salva JSON técnico
+                inputElementos.value = JSON.stringify(mapaDentes);
+                
+                // Atualiza o Texto Humano
+                atualizarResumo();
             });
         });
+        
+        // Inicia o campo com valor padrão para não dar erro
+        inputTipoServico.value = "Nenhum selecionado";
     });
 </script>
 

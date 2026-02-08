@@ -33,10 +33,10 @@ class Usuario(AbstractUser):
 
 class Pedido(models.Model):
     STATUS_CHOICES = (
-        ('PENDENTE', 'Pendente - Aguardando Análise'),
-        ('EM_PRODUCAO', 'Em Produção'),
-        ('CONCLUIDO', 'Concluído - Pronto para Entrega'),
-        ('CANCELADO', 'Cancelado'),
+        ('PENDENTE', 'Pendente'),
+        ('EM_PRODUCAO', 'Iniciado'),   # Antigo "Em Produção"
+        ('CONCLUIDO', 'Finalizado'),   # Antigo "Concluído"
+        ('APROVADO', 'Aprovado'),      # NOVO!
     )
 
     dentista = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='pedidos')
@@ -57,7 +57,7 @@ class Pedido(models.Model):
     nome_paciente = models.CharField(max_length=100, verbose_name="Nome do Paciente")
     sexo = models.CharField(max_length=1, choices=SEXO_CHOICES, default='M', verbose_name="Sexo")
     
-    elementos = models.CharField(max_length=200, verbose_name="Dentes Selecionados", blank=True)
+    elementos = models.TextField(verbose_name="Odontograma JSON", blank=True, default="{}")
     
     tipo_servico = models.CharField(max_length=100, verbose_name="Tipo de Serviço")
     cor = models.CharField(max_length=50, blank=True, null=True, verbose_name="Cor (Ex: A2)")

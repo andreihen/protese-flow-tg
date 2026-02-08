@@ -2,6 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import login
 from django.contrib import messages
+from django.db.models import (
+    Q, Count
+)
 from .models import Anexo, Usuario, Pedido
 from .forms import (
     PedidoForm, AnexoForm, CadastroForm, 
@@ -10,33 +13,61 @@ from .forms import (
 
 @login_required
 def dashboard(request):
-    eh_equipe_interna = request.user.is_superuser or request.user.tipo_usuario in ['GESTOR', 'CADISTA']
-
-    if eh_equipe_interna:
-        pedidos = Pedido.objects.all().order_by('-data_criacao')
-    else:
-        pedidos = Pedido.objects.filter(dentista=request.user).order_by('-data_criacao')
+    eh_gestor = request.user.tipo_usuario in ['GESTOR', 'CADISTA'] or request.user.is_superuser
     
-    return render(request, 'pedidos/dashboard.html', {'pedidos': pedidos})
+    # 1. Base da Query (Quem vê o quê)
+    if eh_gestor:
+        qs_base = Pedido.objects.all()
+    else:
+        qs_base = Pedido.objects.filter(dentista=request.user)
+
+    # 2. CÁLCULO DOS CARDS (KPIs)
+    kpi_pendentes = qs_base.filter(status='PENDENTE').count()
+    kpi_iniciados = qs_base.filter(status='EM_PRODUCAO').count()
+    kpi_finalizados = qs_base.filter(status='CONCLUIDO').count()
+    kpi_aprovados = qs_base.filter(status='APROVADO').count()
+
+    # 3. FILTRO RÁPIDO (Lógica do Clique no Card)
+    status_selecionado = request.GET.get('status')
+    
+    if status_selecionado:
+        pedidos = qs_base.filter(status=status_selecionado).order_by('-data_criacao')
+    else:
+        # Se não clicou em nada, mostra os 5 últimos
+        pedidos = qs_base.order_by('-data_criacao')[:5]
+
+    return render(request, 'pedidos/dashboard.html', {
+        'pedidos': pedidos,
+        'eh_gestor': eh_gestor,
+        'status_selecionado': status_selecionado,
+        'kpi_pendentes': kpi_pendentes,
+        'kpi_iniciados': kpi_iniciados,
+        'kpi_finalizados': kpi_finalizados,
+        'kpi_aprovados': kpi_aprovados,
+    })
 
 @login_required
 def novo_pedido(request):
+    # Verificação básica: Se não for Superuser e cadastro não confirmado, barra.
     if not request.user.cadastro_confirmado and not request.user.is_superuser:
-        messages.warning(request, 'Sua conta ainda está em análise pelo Gestor. Você não pode criar pedidos ainda.')
+        messages.warning(request, 'Sua conta ainda está em análise. Aguarde a aprovação.')
         return redirect('dashboard')
     
     if request.method == 'POST':
-        form_pedido = PedidoForm(request.POST, request.FILES, user=request.user)
+        # Removemos o argumento 'user=' se ele servia para filtrar dentistas no form
+        form_pedido = PedidoForm(request.POST, request.FILES)
         form_anexo = AnexoForm(request.POST, request.FILES)
 
         if form_pedido.is_valid() and form_anexo.is_valid():
             pedido = form_pedido.save(commit=False)
             
-            if not (request.user.tipo_usuario == 'GESTOR' or request.user.is_superuser):
-                pedido.dentista = request.user
+            # AGORA É SIMPLES: Quem está logado é o dono do pedido.
+            # Se for Gestor, o pedido fica no nome dele (ótimo para testes).
+            pedido.dentista = request.user 
             
             pedido.save()
 
+            # Salva o Anexo
             anexo = form_anexo.save(commit=False)
             anexo.pedido = pedido
             anexo.save()
@@ -44,7 +75,7 @@ def novo_pedido(request):
             messages.success(request, 'Pedido criado com sucesso!')
             return redirect('dashboard')
     else:
-        form_pedido = PedidoForm(user=request.user)
+        form_pedido = PedidoForm()
         form_anexo = AnexoForm()
 
     return render(request, 'pedidos/cadastro_pedido.html', {
@@ -54,25 +85,39 @@ def novo_pedido(request):
 
 @login_required
 def editar_pedido(request, id):
-    eh_equipe_interna = request.user.is_superuser or request.user.tipo_usuario in ['GESTOR', 'CADISTA']
+    eh_equipe_interna = request.user.tipo_usuario in ['GESTOR', 'CADISTA'] or request.user.is_superuser
 
+    # 1. Busca Segura
     if eh_equipe_interna:
         pedido = get_object_or_404(Pedido, id=id)
     else:
         pedido = get_object_or_404(Pedido, id=id, dentista=request.user)
 
-    pode_editar_status = eh_equipe_interna
-
-    if request.method == 'POST' and pode_editar_status:
-        novo_status = request.POST.get('status')
-        if novo_status:
-            pedido.status = novo_status
-            pedido.save()
-            return redirect('dashboard')
+    if request.method == 'POST':
+        # CORREÇÃO AQUI: Removemos 'user=request.user'
+        form = PedidoForm(request.POST, request.FILES, instance=pedido)
+        
+        if form.is_valid():
+            obj = form.save(commit=False)
+            
+            if eh_equipe_interna:
+                novo_status = request.POST.get('status_extra')
+                if novo_status:
+                    obj.status = novo_status
+            
+            obj.save()
+            messages.success(request, 'Alterações salvas com sucesso!')
+            # Você pode mudar para redirecionar para o dashboard se preferir
+            return redirect('lista_pedidos')
+    else:
+        # CORREÇÃO AQUI: Removemos 'user=request.user'
+        form = PedidoForm(instance=pedido)
 
     return render(request, 'pedidos/editar_pedido.html', {
+        'form': form,
         'pedido': pedido,
-        'pode_editar_status': pode_editar_status
+        'eh_equipe_interna': eh_equipe_interna,
+        'status_choices': Pedido.STATUS_CHOICES  # <--- ESSA LINHA É ESSENCIAL
     })
 
 def cadastrar(request):
@@ -84,16 +129,15 @@ def cadastrar(request):
 
         if form.is_valid():
             user = form.save(commit=False)
-            user.cadastro_confirmado = False
+            
+            # --- DEFINIÇÃO AUTOMÁTICA ---
+            user.tipo_usuario = 'DENTISTA'   # <--- Adicione esta linha
+            user.cadastro_confirmado = True  # Conta já nasce aprovada
+            
             user.save()
 
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-
-            messages.success(request, 'Cadastro realizado! Seu acesso está limitado até a validação do CRO.')
-            return redirect('dashboard')
-        else:
-            pass 
-            
+            messages.success(request, '✅ Conta criada com sucesso! Por favor, faça seu login.')
+            return redirect('login')
     else:
         form = CadastroForm()
 
@@ -246,3 +290,71 @@ def rejeitar_usuario(request, user_id):
     usuario.delete()
     messages.warning(request, f'Solicitação de {usuario.username} foi rejeitada e excluída.')
     return redirect('lista_aprovacao')
+
+@login_required
+def lista_pedidos(request):
+    # 1. Definir quem é o usuário e o que ele pode ver
+    eh_gestor = request.user.tipo_usuario in ['GESTOR', 'CADISTA'] or request.user.is_superuser
+    
+    if eh_gestor:
+        pedidos = Pedido.objects.all()
+        # Busca apenas usuários que são DENTISTAS para preencher o filtro
+        lista_dentistas = Usuario.objects.filter(tipo_usuario='DENTISTA')
+    else:
+        # Dentista vê APENAS os seus
+        pedidos = Pedido.objects.filter(dentista=request.user)
+        lista_dentistas = [] 
+
+    # 2. Lógica de Busca (Texto ou ID)
+    busca = request.GET.get('busca') # Pega o que foi digitado no campo 'busca'
+    if busca:
+        # Tenta filtrar por ID exato OU Nome do Paciente que contenha o texto
+        pedidos = pedidos.filter(
+            Q(id__icontains=busca) | 
+            Q(nome_paciente__icontains=busca)
+        )
+
+    # 3. Lógica de Filtro por Cliente (Apenas para Gestor)
+    filtro_cliente = request.GET.get('cliente')
+    if eh_gestor and filtro_cliente:
+        pedidos = pedidos.filter(dentista__id=filtro_cliente)
+
+    # 4. Ordenação
+    ordenar_por = request.GET.get('ordenar', '-id') # Padrão: Mais recentes primeiro (-id)
+    
+    # Dicionário para garantir que só ordenamos por campos que existem
+    mapa_ordem = {
+        'id': 'id', '-id': '-id',
+        'paciente': 'nome_paciente', '-paciente': '-nome_paciente',
+        'data': 'data_entrega_prevista', '-data': '-data_entrega_prevista',
+        'status': 'status',
+    }
+    campo_ordenacao = mapa_ordem.get(ordenar_por, '-id')
+    pedidos = pedidos.order_by(campo_ordenacao)
+
+    # 5. Renderizar
+    return render(request, 'pedidos/lista_pedidos.html', {
+        'pedidos': pedidos,
+        'dentistas': lista_dentistas,
+        'eh_gestor': eh_gestor,
+        # Passamos os valores atuais para o HTML manter os campos preenchidos
+        'busca_atual': busca,
+        'filtro_cliente_atual': filtro_cliente,
+        'ordem_atual': ordenar_por
+    })
+
+@login_required
+def excluir_pedido(request, id):
+    pedido = get_object_or_404(Pedido, id=id)
+    
+    # Apenas Gestor pode excluir (Regra de Negócio comum)
+    if not (request.user.tipo_usuario == 'GESTOR' or request.user.is_superuser):
+        messages.error(request, 'Apenas gestores podem excluir registros.')
+        return redirect('lista_pedidos')
+        
+    if request.method == 'POST':
+        pedido.delete()
+        messages.success(request, 'Pedido excluído.')
+        return redirect('lista_pedidos')
+    
+    return render(request, 'pedidos/confirmar_exclusao.html', {'pedido': pedido})

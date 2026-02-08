@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Criar Conta | ProteseFlow</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         body {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -12,142 +13,99 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
         .card-cadastro {
             border: none;
             border-radius: 15px;
             overflow: hidden;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            padding: 25px;
         }
         
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover, 
-        input:-webkit-autofill:focus, 
-        input:-webkit-autofill:active {
-            -webkit-box-shadow: 0 0 0 30px white inset !important;
-            -webkit-text-fill-color: #212529 !important;
-            transition: background-color 5000s ease-in-out 0s;
+        /* ESTILO DA NOTIFICAÇÃO FLUTUANTE (MESMO DO LOGIN) */
+        .alert-floating {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 320px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            animation: slideInRight 0.5s ease-out;
+            border-left: 5px solid #dc3545; /* Padrão erro */
         }
-
-        .form-label {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 5px;
-        }
-        
-        .link-login {
-            text-decoration: none;
-            color: #0d6efd;
-            font-weight: 600;
-        }
-        .link-login:hover {
-            text-decoration: underline;
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-5">
-                
-                <div class="card card-cadastro shadow-lg">
-                    <div class="card-body p-4 p-md-5">
-                        
-                        <div class="text-center mb-4">
-                            <h2 class="fw-bold text-primary">🦷 ProteseFlow</h2>
-                            <p class="text-muted">Cadastro de Dentista</p>
-                        </div>
-
-                        {% if form.non_field_errors %}
-                        <div class="alert alert-danger d-flex align-items-center mb-3">
-                            <div>
-                                {% for error in form.non_field_errors %}
-                                    {{ error }}<br>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <form method="post" novalidate>
-                            {% csrf_token %}
-
-                            <div class="mb-3">
-                                <label for="{{ form.username.id_for_label }}" class="form-label">Nome de Usuário</label>
-                                {{ form.username }}
-                                {% if form.username.errors %}
-                                    <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="{{ form.first_name.id_for_label }}" class="form-label">Nome Completo</label>
-                                {{ form.first_name }}
-                                {% if form.first_name.errors %}
-                                    <div class="text-danger small mt-1">{{ form.first_name.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="{{ form.email.id_for_label }}" class="form-label">E-mail</label>
-                                {{ form.email }}
-                                {% if form.email.errors %}
-                                    <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-
-                            <div class="row g-2 mb-3">
-                                <div class="col-6">
-                                    <label for="{{ form.telefone.id_for_label }}" class="form-label">Telefone</label>
-                                    {{ form.telefone }}
-                                    {% if form.telefone.errors %}
-                                        <div class="text-danger small mt-1">{{ form.telefone.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-6">
-                                    <label for="{{ form.cro.id_for_label }}" class="form-label">CRO / UF</label>
-                                    {{ form.cro }}
-                                    {% if form.cro.errors %}
-                                        <div class="text-danger small mt-1">{{ form.cro.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="{{ form.password1.id_for_label }}" class="form-label">Senha</label>
-                                {{ form.password1 }}
-                                {% if form.password1.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.password1.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="mb-4">
-                                <label for="{{ form.password2.id_for_label }}" class="form-label">Confirmar Senha</label>
-                                {{ form.password2 }}
-                                {% if form.password2.errors %}
-                                    <div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-
-                            <div class="d-grid mb-4">
-                                <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm">
-                                    Criar Conta
-                                </button>
-                            </div>
-                            
-                            <div class="text-center">
-                                <span class="text-muted">Já tem uma conta?</span>
-                                <a href="{% url 'login' %}" class="link-login ms-1">Fazer Login</a>
-                            </div>
-
-                        </form>
-                    </div>
+    {% if form.errors %}
+        <div class="alert alert-danger alert-floating alert-dismissible fade show bg-white text-danger" role="alert">
+            <div class="d-flex">
+                <i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
+                <div>
+                    <h6 class="fw-bold mb-1">Não foi possível criar a conta</h6>
+                    <ul class="mb-0 small ps-3 text-secondary">
+                        {% for field, errors in form.errors.items %}
+                            <li><strong>{{ field|title }}:</strong> {{ errors|join:", " }}</li>
+                        {% endfor %}
+                    </ul>
                 </div>
-
             </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endif %}
+
+    <div class="card card-cadastro">
+        <div class="card-header text-center">
+            <h3 class="fw-bold mb-0"><i class="bi bi-person-plus-fill me-2"></i>Nova Conta</h3>
+            <p class="mb-0 small opacity-75">Junte-se ao ProteseFlow</p>
+        </div>
+        
+        <div class="card-body p-4 p-md-5 bg-white">
+            <form method="post">
+                {% csrf_token %}
+                
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <div class="form-text small">{{ field.help_text }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm py-3">
+                        CRIAR CONTA
+                    </button>
+                    <a href="{% url 'login' %}" class="btn btn-outline-secondary py-2 border-0">
+                        <i class="bi bi-arrow-left me-1"></i> Voltar para Login
+                    </a>
+                </div>
+            </form>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Garante estilo Bootstrap nos inputs
+        document.querySelectorAll('input, select, textarea').forEach(el => {
+            if (!el.classList.contains('form-check-input')) {
+                el.classList.add('form-control', 'form-control-lg', 'fs-6');
+            }
+        });
+    </script>
 </body>
 </html>
