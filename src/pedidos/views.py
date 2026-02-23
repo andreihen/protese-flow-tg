@@ -8,33 +8,42 @@ from django.db.models import (
 from .models import Anexo, Usuario, Pedido
 from .forms import (
     PedidoForm, AnexoForm, CadastroForm, 
-    EditarUsuarioForm, MeuPerfilForm, CriarFuncionarioForm
+    EditarUsuarioForm, MeuPerfilForm, CriarUsuarioCompletoForm
 )
+from django.utils import timezone
 
 @login_required
 def dashboard(request):
-    eh_gestor = request.user.tipo_usuario in ['GESTOR', 'CADISTA'] or request.user.is_superuser
+    usuario = request.user
+    
+    eh_gestor = usuario.tipo_usuario in ['GESTOR', 'ADMIN'] or usuario.is_superuser
+    eh_cadista = usuario.tipo_usuario == 'CADISTA'
     
     if eh_gestor:
         qs_base = Pedido.objects.all()
+    elif eh_cadista:
+        qs_base = Pedido.objects.filter(Q(cadista=usuario) | Q(status='PENDENTE'))
     else:
-        qs_base = Pedido.objects.filter(dentista=request.user)
+
+        qs_base = Pedido.objects.filter(dentista=usuario)
 
     kpi_pendentes = qs_base.filter(status='PENDENTE').count()
     kpi_iniciados = qs_base.filter(status='EM_PRODUCAO').count()
     kpi_finalizados = qs_base.filter(status='CONCLUIDO').count()
+    
     kpi_aprovados = qs_base.filter(status='APROVADO').count()
-
+    
     status_selecionado = request.GET.get('status')
     
     if status_selecionado:
         pedidos = qs_base.filter(status=status_selecionado).order_by('-data_criacao')
     else:
-        pedidos = qs_base.order_by('-data_criacao')[:5]
+        pedidos = qs_base.order_by('-data_criacao')[:10]
 
     return render(request, 'pedidos/dashboard.html', {
         'pedidos': pedidos,
         'eh_gestor': eh_gestor,
+        'eh_cadista': eh_cadista,
         'status_selecionado': status_selecionado,
         'kpi_pendentes': kpi_pendentes,
         'kpi_iniciados': kpi_iniciados,
@@ -44,10 +53,6 @@ def dashboard(request):
 
 @login_required
 def novo_pedido(request):
-    if not request.user.cadastro_confirmado and not request.user.is_superuser:
-        messages.warning(request, 'Sua conta ainda está em análise. Aguarde a aprovação.')
-        return redirect('dashboard')
-    
     if request.method == 'POST':
         form_pedido = PedidoForm(request.POST, request.FILES)
         form_anexo = AnexoForm(request.POST, request.FILES)
@@ -72,6 +77,60 @@ def novo_pedido(request):
     return render(request, 'pedidos/cadastro_pedido.html', {
         'form_pedido': form_pedido,
         'form_anexo': form_anexo
+    })
+
+@login_required
+def detalhes_pedido(request, id):
+    pedido = get_object_or_404(Pedido, id=id)
+    usuario = request.user
+    
+    eh_dono = pedido.dentista == usuario
+    eh_responsavel = pedido.cadista == usuario
+    eh_gestor = usuario.tipo_usuario in ['GESTOR', 'ADMIN'] or usuario.is_superuser
+    pode_atuar = eh_dono or eh_responsavel or eh_gestor or (pedido.status == 'PENDENTE' and usuario.tipo_usuario == 'CADISTA')
+
+    if not pode_atuar:
+        messages.error(request, "Você não tem permissão para ver este caso.")
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        acao = request.POST.get('acao')
+        
+        if acao == 'iniciar':
+            pedido.status = 'EM_PRODUCAO'
+            pedido.cadista = usuario
+            pedido.save()
+            messages.success(request, 'Você assumiu este caso! Mãos à obra.')
+
+        elif acao == 'finalizar':
+            arquivo = request.FILES.get('arquivo_entregavel')
+            if arquivo:
+                pedido.arquivo_entregavel = arquivo
+                pedido.status = 'CONCLUIDO'
+                pedido.save()
+                messages.success(request, 'Caso finalizado e arquivo enviado!')
+            else:
+                messages.error(request, 'Você precisa anexar o arquivo do desenho para finalizar.')
+
+        elif acao == 'aprovar':
+            pedido.status = 'APROVADO'
+            pedido.save()
+            messages.success(request, 'Caso aprovado! Obrigado.')
+
+        elif acao == 'ajustar':
+            motivo = request.POST.get('motivo_ajuste')
+            pedido.status = 'RETRABALHO'
+            pedido.motivo_retrabalho = motivo
+            pedido.save()
+            messages.warning(request, 'Solicitação de ajuste enviada ao cadista.')
+
+        return redirect('detalhes_pedido', id=id)
+
+    return render(request, 'pedidos/detalhes_pedido.html', {
+        'pedido': pedido,
+        'eh_gestor': eh_gestor,
+        'eh_dono': eh_dono,
+        'eh_responsavel': eh_responsavel
     })
 
 @login_required
@@ -253,31 +312,6 @@ def eh_gestor(user):
     return user.is_authenticated and (user.tipo_usuario == 'GESTOR' or user.is_superuser)
 
 @login_required
-@user_passes_test(eh_gestor)
-def lista_aprovacao(request):
-    pendentes = Usuario.objects.filter(cadastro_confirmado=False).exclude(is_superuser=True)
-    return render(request, 'pedidos/lista_aprovacao.html', {'pendentes': pendentes})
-
-@login_required
-@user_passes_test(eh_gestor)
-def aprovar_usuario(request, user_id):
-    usuario = get_object_or_404(Usuario, id=user_id)
-    
-    usuario.cadastro_confirmado = True
-    usuario.save()
-    
-    messages.success(request, f'Dentista {usuario.username} autorizado com sucesso!')
-    return redirect('lista_aprovacao')
-
-@login_required
-@user_passes_test(eh_gestor)
-def rejeitar_usuario(request, user_id):
-    usuario = get_object_or_404(Usuario, id=user_id)
-    usuario.delete()
-    messages.warning(request, f'Solicitação de {usuario.username} foi rejeitada e excluída.')
-    return redirect('lista_aprovacao')
-
-@login_required
 def lista_pedidos(request):
     eh_gestor = request.user.tipo_usuario in ['GESTOR', 'CADISTA'] or request.user.is_superuser
     
@@ -333,3 +367,20 @@ def excluir_pedido(request, id):
         return redirect('lista_pedidos')
     
     return render(request, 'pedidos/confirmar_exclusao.html', {'pedido': pedido})
+
+@login_required
+def criar_usuario_interno(request):
+    if not (request.user.tipo_usuario == 'GESTOR' or request.user.is_superuser):
+        messages.error(request, 'Acesso restrito.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = CriarUsuarioCompletoForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, f'Usuário {user.username} ({user.tipo_usuario}) criado com sucesso!')
+            return redirect('lista_usuarios')
+    else:
+        form = CriarUsuarioCompletoForm()
+
+    return render(request, 'pedidos/criar_usuario_interno.html', {'form': form})

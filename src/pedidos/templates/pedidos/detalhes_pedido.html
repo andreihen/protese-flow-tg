@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-3">
+                <h2 class="text-primary fw-bold mb-0">Caso #{{ pedido.id }}</h2>
+                {% if pedido.status == 'PENDENTE' %}
+                    <span class="badge bg-warning text-dark px-3 py-2">Aguardando Início</span>
+                {% elif pedido.status == 'EM_PRODUCAO' %}
+                    <span class="badge bg-info text-dark px-3 py-2">Em Produção por {{ pedido.cadista.first_name }}</span>
+                {% elif pedido.status == 'CONCLUIDO' %}
+                    <span class="badge bg-success px-3 py-2">Finalizado (Aguardando Aprovação)</span>
+                {% elif pedido.status == 'RETRABALHO' %}
+                    <span class="badge bg-danger px-3 py-2">Ajuste Solicitado</span>
+                {% elif pedido.status == 'APROVADO' %}
+                    <span class="badge bg-primary px-3 py-2"><i class="bi bi-check-all me-1"></i>Aprovado</span>
+                {% endif %}
+            </div>
+            <p class="text-muted small mt-1">Paciente: {{ pedido.nome_paciente }} | Serviço: {{ pedido.tipo_servico }}</p>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+    </div>
+
+    <div class="row">
+        
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white fw-bold text-primary">
+                    <i class="bi bi-clipboard-data me-2"></i>Dados do Pedido
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6"><label class="small text-muted fw-bold">DENTISTA</label><p>{{ pedido.dentista.first_name }}</p></div>
+                        <div class="col-6"><label class="small text-muted fw-bold">ENTREGA</label><p>{{ pedido.data_entrega_prevista|date:"d/m/Y" }}</p></div>
+                        <div class="col-12"><label class="small text-muted fw-bold">OBSERVAÇÕES</label><p class="bg-light p-2 rounded">{{ pedido.observacoes|default:"-" }}</p></div>
+                        
+                        {% if pedido.status == 'RETRABALHO' %}
+                        <div class="col-12">
+                            <div class="alert alert-danger">
+                                <strong><i class="bi bi-exclamation-circle me-1"></i>Motivo do Ajuste:</strong><br>
+                                {{ pedido.motivo_retrabalho }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white fw-bold text-primary">
+                    <i class="bi bi-folder2-open me-2"></i>Arquivos
+                </div>
+                <div class="card-body">
+                    {% if pedido.anexo %}
+                        <div class="d-flex align-items-center justify-content-between p-2 border rounded mb-2">
+                            <span><i class="bi bi-file-earmark-medical me-2"></i>Escaneamento (Original)</span>
+                            <a href="{{ pedido.anexo.arquivo.url }}" class="btn btn-sm btn-outline-primary" download>Baixar</a>
+                        </div>
+                    {% endif %}
+
+                    {% if pedido.arquivo_entregavel %}
+                        <div class="d-flex align-items-center justify-content-between p-2 border border-success bg-success bg-opacity-10 rounded">
+                            <span class="text-success fw-bold"><i class="bi bi-box-seam me-2"></i>Arquivo Final (Entrega)</span>
+                            <a href="{{ pedido.arquivo_entregavel.url }}" class="btn btn-sm btn-success" download>Baixar Projeto</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow border-0">
+                <div class="card-body text-center p-4">
+                    <h5 class="fw-bold mb-3">Próxima Etapa</h5>
+
+                    {% if pedido.status == 'PENDENTE' and not eh_dono %}
+                        <p class="text-muted small">Este caso está na fila. Deseja iniciar?</p>
+                        <form method="post">{% csrf_token %}
+                            <button type="submit" name="acao" value="iniciar" class="btn btn-primary w-100 py-2 fw-bold">
+                                <i class="bi bi-play-circle-fill me-2"></i>INICIAR PRODUÇÃO
+                            </button>
+                        </form>
+                    
+                    {% elif pedido.status == 'EM_PRODUCAO' or pedido.status == 'RETRABALHO' %}
+                        {% if eh_responsavel or eh_gestor %}
+                            <p class="text-muted small">Trabalho em andamento. Finalize enviando o arquivo.</p>
+                            <form method="post" enctype="multipart/form-data">{% csrf_token %}
+                                <div class="mb-3 text-start">
+                                    <label class="form-label small fw-bold">Anexar Arquivo Pronto</label>
+                                    <input type="file" name="arquivo_entregavel" class="form-control" required>
+                                </div>
+                                <button type="submit" name="acao" value="finalizar" class="btn btn-success w-100 py-2 fw-bold">
+                                    <i class="bi bi-send-check-fill me-2"></i>FINALIZAR E ENTREGAR
+                                </button>
+                            </form>
+                        {% else %}
+                            <div class="alert alert-info small">O cadista está trabalhando neste caso.</div>
+                        {% endif %}
+
+                    {% elif pedido.status == 'CONCLUIDO' %}
+                        {% if eh_dono %}
+                            <p class="text-muted small">O projeto está pronto! Baixe o arquivo ao lado e avalie.</p>
+                            
+                            <form method="post" class="d-grid gap-2">{% csrf_token %}
+                                <button type="submit" name="acao" value="aprovar" class="btn btn-primary fw-bold">
+                                    <i class="bi bi-hand-thumbs-up-fill me-2"></i>APROVAR
+                                </button>
+                                
+                                <button type="button" class="btn btn-outline-danger fw-bold" data-bs-toggle="collapse" data-bs-target="#boxAjuste">
+                                    <i class="bi bi-arrow-repeat me-2"></i>SOLICITAR AJUSTE
+                                </button>
+
+                                <div class="collapse mt-2" id="boxAjuste">
+                                    <textarea name="motivo_ajuste" class="form-control mb-2" rows="3" placeholder="O que precisa ser corrigido?" required></textarea>
+                                    <button type="submit" name="acao" value="ajustar" class="btn btn-danger btn-sm w-100">Confirmar Solicitação</button>
+                                </div>
+                            </form>
+                        {% else %}
+                            <div class="alert alert-warning small">Aguardando aprovação do dentista.</div>
+                        {% endif %}
+
+                    {% elif pedido.status == 'APROVADO' %}
+                        <div class="text-success py-3">
+                            <i class="bi bi-check-circle-fill fs-1"></i>
+                            <h5 class="fw-bold mt-2">Processo Concluído!</h5>
+                        </div>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -6,8 +6,8 @@ from pedidos.views import (
     novo_pedido, dashboard, editar_pedido, cadastrar, 
     lista_usuarios, editar_usuario, excluir_usuario, cadastrar,
     novo_pedido, dashboard, editar_pedido, meu_perfil, criar_usuario,
-    lixeira_usuarios, restaurar_usuario, deletar_permanente, lista_aprovacao,
-    aprovar_usuario, rejeitar_usuario, novo_pedido
+    lixeira_usuarios, restaurar_usuario, deletar_permanente,
+    novo_pedido, criar_usuario_interno
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -28,12 +28,12 @@ urlpatterns = [
     path('pedidos/', views.lista_pedidos, name='lista_pedidos'),
     
     # --- CRUD Pedidos ---
-    path('pedidos/novo/', views.novo_pedido, name='criar_pedido'), # Nome padronizado
-    path('pedidos/novo-pedido/', views.novo_pedido, name='novo_pedido'), # Alias para evitar erro
+    path('pedidos/novo/', views.novo_pedido, name='criar_pedido'),
+    path('pedidos/novo-pedido/', views.novo_pedido, name='novo_pedido'),
     path('pedidos/editar/<int:id>/', views.editar_pedido, name='editar_pedido'),
     path('pedidos/excluir/<int:id>/', views.excluir_pedido, name='excluir_pedido'),
 
-    # --- Gestão de Usuários (Apenas Gestor) ---
+    # --- Gestão de Usuários ---
     path('usuarios/', views.lista_usuarios, name='lista_usuarios'),
     path('usuarios/criar/', views.criar_usuario, name='criar_usuario'),
     path('usuarios/editar/<int:id>/', views.editar_usuario, name='editar_usuario'),
@@ -43,10 +43,9 @@ urlpatterns = [
     path('usuarios/deletar-permanente/<int:id>/', views.deletar_permanente, name='deletar_permanente'),
     
     # --- Aprovações e Perfil ---
-    path('gestao/solicitacoes/', views.lista_aprovacao, name='lista_aprovacao'),
-    path('gestao/aprovar/<int:user_id>/', views.aprovar_usuario, name='aprovar_usuario'),
-    path('gestao/rejeitar/<int:user_id>/', views.rejeitar_usuario, name='rejeitar_usuario'),
     path('meu-perfil/', views.meu_perfil, name='meu_perfil'),
+
+    path('equipe/novo/', criar_usuario_interno, name='criar_usuario_interno'),
 ]
 
 if settings.DEBUG:

@@ -33,13 +33,20 @@ class Usuario(AbstractUser):
 
 class Pedido(models.Model):
     STATUS_CHOICES = (
-        ('PENDENTE', 'Pendente'),
-        ('EM_PRODUCAO', 'Iniciado'),
+        ('PENDENTE', 'Aguardando Início'),
+        ('EM_PRODUCAO', 'Em Produção'),
         ('CONCLUIDO', 'Finalizado'),
+        ('RETRABALHO', 'Ajuste Solicitado'),
         ('APROVADO', 'Aprovado'),
     )
 
     dentista = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='pedidos')
+
+    cadista = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='pedidos_alocados')
+
+    arquivo_entregavel = models.FileField(upload_to='entregas/', null=True, blank=True)
+
+    motivo_retrabalho = models.TextField(null=True, blank=True)
     
     nome_paciente = models.CharField(max_length=100)
     

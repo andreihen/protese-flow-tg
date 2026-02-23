@@ -2,161 +2,177 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Novo Usuário Interno | ProteseFlow</title>
+    <title>Novo Membro da Equipe | ProteseFlow</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    
     <style>
-        body { background-color: #f8f9fa; }
-        .card-header-custom {
-            background-color: #0d6efd;
-            color: white;
-            font-weight: bold;
+        body { background-color: #f0f2f5; }
+        
+        .selector-item {
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
         }
+        .selector-item:hover { transform: translateY(-3px); }
+        
+        .selector-item.selected {
+            border-color: #0d6efd;
+            background-color: #e7f1ff;
+        }
+        
+        .role-icon { font-size: 2rem; margin-bottom: 10px; color: #6c757d; }
+        .selected .role-icon { color: #0d6efd; }
     </style>
 </head>
 <body class="py-5">
 
-    <div class="container" style="max-width: 900px;">
-        
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="fw-bold text-primary mb-0">
-                    <i class="bi bi-person-plus-fill me-2"></i>Novo Usuário Interno
-                </h2>
-                <p class="text-muted mb-0">Adicione gestores, funcionários ou dentistas manualmente.</p>
-            </div>
-            <a href="{% url 'lista_usuarios' %}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Voltar
-            </a>
+<div class="container" style="max-width: 800px;">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-0">Cadastrar Novo Usuário</h3>
+            <p class="text-muted small">Adicione um novo membro à equipe ou um dentista manualmente.</p>
         </div>
-
-        <form method="post">
-            {% csrf_token %}
-
-            <div class="row g-4">
-                
-                <div class="col-md-6">
-                    <div class="card shadow-sm h-100 border-0">
-                        <div class="card-header card-header-custom bg-dark">
-                            <i class="bi bi-shield-lock me-2"></i> Credenciais de Acesso
-                        </div>
-                        <div class="card-body p-4">
-                            
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Nome de Usuário (Login)*</label>
-                                {{ form.username }}
-                                {% if form.username.errors %}
-                                    <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
-                                {% endif %}
-                                <div class="form-text small">Será usado para logar no sistema.</div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Senha*</label>
-                                {{ form.password1 }} {% if form.password1.errors %}
-                                    <div class="text-danger small mt-1">{{ form.password1.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Confirmar Senha*</label>
-                                {{ form.password2 }}
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <div class="card shadow-sm h-100 border-0">
-                        <div class="card-header card-header-custom">
-                            <i class="bi bi-person-badge me-2"></i> Perfil e Função
-                        </div>
-                        <div class="card-body p-4">
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold text-primary">Função no Sistema*</label>
-                                {{ form.tipo_usuario }}
-                                <div class="form-text">Define o que este usuário poderá ver.</div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-12">
-                                    <label class="form-label fw-bold">Nome Completo</label>
-                                    {{ form.first_name }}
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">E-mail</label>
-                                {{ form.email }}
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Telefone / WhatsApp</label>
-                                {{ form.telefone }}
-                            </div>
-
-                            <div id="div_cro" class="bg-light p-3 border rounded border-success" style="display: none;">
-                                <label class="form-label fw-bold text-success">
-                                    <i class="bi bi-postcard-heart me-1"></i> Número do CRO
-                                </label>
-                                {{ form.cro }}
-                                <small class="text-success d-block mt-1">Obrigatório para contas do tipo Dentista.</small>
-                                {% if form.cro.errors %}
-                                    <div class="text-danger small mt-1">{{ form.cro.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="d-grid gap-2 mt-4 mb-5">
-                <button type="submit" class="btn btn-success btn-lg shadow fw-bold text-uppercase">
-                    <i class="bi bi-check-circle-fill me-2"></i> Cadastrar Usuário
-                </button>
-            </div>
-
-        </form>
+        <a href="{% url 'lista_usuarios' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Cancelar
+        </a>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const selectTipo = document.querySelector('select[name="tipo_usuario"]');
-            const divCro = document.getElementById('div_cro');
-            const inputCro = document.querySelector('input[name="cro"]');
+    <form method="post" id="formCadastro">
+        {% csrf_token %}
 
-            function toggleCro() {
-                if (selectTipo && selectTipo.value === 'DENTISTA') {
-                    divCro.style.display = 'block';
-                } else {
-                    divCro.style.display = 'none';
-                    if(inputCro) inputCro.value = '';
-                }
-            }
+        {% if form.errors %}
+            <div class="alert alert-danger shadow-sm mb-4">
+                <h6 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Erro ao salvar:</h6>
+                <ul class="mb-0 small">
+                {% for field, errors in form.errors.items %}
+                    <li><strong>{{ field|title }}:</strong> {{ errors|join:", " }}</li>
+                {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
 
-            if (selectTipo) {
-                toggleCro();
-                selectTipo.addEventListener('change', toggleCro);
-            }
-        });
-        const form = document.querySelector('form');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                const btn = this.querySelector('button[type="submit"]');
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white fw-bold py-3">1. Qual a função deste usuário?</div>
+            <div class="card-body">
                 
-                if (this.checkValidity()) {
-                    btn.disabled = true;
-                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
-                }
-            });
+                <input type="hidden" name="tipo_usuario" id="inputTipo" required>
+
+                <div class="row g-3 text-center">
+                    <div class="col-md-4">
+                        <div class="card p-3 selector-item" onclick="selecionarTipo('GESTOR', this)">
+                            <i class="bi bi-shield-lock-fill role-icon"></i>
+                            <h6 class="fw-bold">Gestor</h6>
+                            <small class="text-muted">Acesso total ao sistema e configurações.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card p-3 selector-item" onclick="selecionarTipo('CADISTA', this)">
+                            <i class="bi bi-pc-display-horizontal role-icon"></i>
+                            <h6 class="fw-bold">Cadista</h6>
+                            <small class="text-muted">Operador de desenhos e produção.</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card p-3 selector-item" onclick="selecionarTipo('DENTISTA', this)">
+                            <i class="bi bi-person-heart role-icon"></i>
+                            <h6 class="fw-bold">Dentista</h6>
+                            <small class="text-muted">Cliente que envia pedidos.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-danger small mt-2 text-center" id="erroTipo" style="display:none;">Selecione uma função acima.</div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white fw-bold py-3">2. Dados Pessoais</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold text-secondary">Nome Completo</label>
+                        <input type="text" name="first_name" class="form-control" required placeholder="Ex: Maria Silva">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">E-mail</label>
+                        <input type="email" name="email" class="form-control" required placeholder="email@exemplo.com">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Telefone / WhatsApp</label>
+                        <input type="text" name="telefone" class="form-control" placeholder="(00) 00000-0000">
+                    </div>
+                    
+                    <div class="col-md-12" id="boxCro" style="display:none;">
+                        <label class="form-label small fw-bold text-success">Número do CRO (Obrigatório)</label>
+                        <input type="text" name="cro" class="form-control border-success" placeholder="Ex: 12345-SP">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-header bg-white fw-bold py-3">3. Dados de Acesso</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold text-secondary">Nome de Usuário (Login)</label>
+                        <input type="text" name="username" class="form-control bg-light" required placeholder="Ex: maria.silva">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Senha</label>
+                        <input type="password" name="password1" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Confirmar Senha</label>
+                        <input type="password" name="password2" class="form-control" required>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-grid pb-5">
+            <button type="submit" class="btn btn-primary btn-lg fw-bold shadow">
+                <i class="bi bi-check-lg me-2"></i> CONFIRMAR CADASTRO
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    function selecionarTipo(tipo, elemento) {
+        document.getElementById('inputTipo').value = tipo;
+        
+        document.querySelectorAll('.selector-item').forEach(el => {
+            el.classList.remove('selected');
+        });
+        
+        elemento.classList.add('selected');
+        
+        const boxCro = document.getElementById('boxCro');
+        if (tipo === 'DENTISTA') {
+            boxCro.style.display = 'block';
+            boxCro.querySelector('input').required = true;
+        } else {
+            boxCro.style.display = 'none';
+            boxCro.querySelector('input').required = false;
+            boxCro.querySelector('input').value = '';
         }
-    </script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        
+        document.getElementById('erroTipo').style.display = 'none';
+    }
+
+    document.getElementById('formCadastro').addEventListener('submit', function(e) {
+        const tipo = document.getElementById('inputTipo').value;
+        if (!tipo) {
+            e.preventDefault();
+            document.getElementById('erroTipo').style.display = 'block';
+            window.scrollTo(0, 0);
+        }
+    });
+</script>
+
 </body>
 </html>
