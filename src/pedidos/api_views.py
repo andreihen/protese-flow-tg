@@ -109,9 +109,18 @@ def compute_elements_diff(old_json_str, new_json_str):
 def check_concurrency(pedido, request):
     client_updated_at = request.data.get('updated_at')
     if client_updated_at:
-        client_time = parse_datetime(client_updated_at)
-        if client_time and pedido.updated_at.replace(microsecond=0) > client_time.replace(microsecond=0):
-            return False
+        try:
+            client_time = parse_datetime(client_updated_at)
+            if client_time:
+                if timezone.is_naive(client_time):
+                    client_time = timezone.make_aware(client_time, timezone.get_current_timezone())
+                if timezone.is_aware(pedido.updated_at):
+                    client_time = client_time.astimezone(pedido.updated_at.tzinfo)
+                # Permitir margem de tolerância de 5 segundos para diferenças no timestamp do cliente
+                if (pedido.updated_at - client_time).total_seconds() > 5:
+                    return False
+        except Exception as e:
+            print("Erro de concorrência:", e)
     return True
 
 def registrar_historico(pedido, usuario, status_anterior, status_novo, motivo=None, detalhes_alteracao=None):
@@ -188,7 +197,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
         if user.role == 'GESTOR' or user.is_superuser:
             return Pedido.objects.all().order_by('-urgente', '-data_criacao')
         elif user.role == 'OPERADOR':
-            return Pedido.objects.filter(Q(operador=user) | Q(status='PENDENTE')).order_by('-urgente', '-data_criacao')
+            return Pedido.objects.filter(
+                Q(operador=user) | Q(status='PENDENTE') | Q(status='INICIADO') | Q(status='RETRABALHO_OPERADOR')
+            ).order_by('-urgente', '-data_criacao')
         else: # DENTISTA
             return Pedido.objects.filter(dentista=user).order_by('-urgente', '-data_criacao')
 
@@ -359,6 +370,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Este caso foi modificado desde a sua última leitura.'}, status=status.HTTP_409_CONFLICT)
             
         status_anterior = pedido.status
+        if not pedido.operador and request.user.role in ['OPERADOR', 'GESTOR', 'ADMIN']:
+            pedido.operador = request.user
+
         pedido.status = 'INICIADO'
         pedido.save()
         registrar_historico(pedido, request.user, status_anterior, 'INICIADO')
@@ -369,14 +383,19 @@ class PedidoViewSet(viewsets.ModelViewSet):
     def finalizar_caso(self, request, pk=None):
         pedido = self.get_object()
         if not check_concurrency(pedido, request):
-            return Response({'error': 'Este caso foi modificado.'}, status=status.HTTP_409_CONFLICT)
+            return Response({'error': 'Este caso foi modificado desde a sua última leitura.'}, status=status.HTTP_409_CONFLICT)
             
         arquivo = request.FILES.get('arquivo_entregavel')
-        if not arquivo:
-            return Response({'error': 'Arquivo entregável é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not arquivo and not pedido.arquivo_entregavel:
+            return Response({'error': 'Arquivo entregável (.STL/.PLY) é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
         
         status_anterior = pedido.status
-        pedido.arquivo_entregavel = arquivo
+        if arquivo:
+            pedido.arquivo_entregavel = arquivo
+
+        if not pedido.operador and request.user.role in ['OPERADOR', 'GESTOR', 'ADMIN']:
+            pedido.operador = request.user
+
         pedido.status = 'EM_APROVACAO'
         pedido.data_conclusao = timezone.now()
         pedido.save()

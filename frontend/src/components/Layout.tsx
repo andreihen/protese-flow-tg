@@ -22,12 +22,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       roles: ['DENTISTA', 'OPERADOR', 'GESTOR', 'ADMIN'],
     },
     {
-      label: 'Todos os Casos',
-      path: '/casos',
-      icon: <Database size={20} />,
-      roles: ['DENTISTA', 'OPERADOR', 'GESTOR', 'ADMIN'],
-    },
-    {
       label: 'Novo Pedido',
       path: '/pedidos/novo',
       icon: <FilePlus size={20} />,

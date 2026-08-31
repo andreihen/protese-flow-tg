@@ -414,6 +414,11 @@ const Dashboard: React.FC = () => {
     }
 
     // 4. Status
+    // Ocultar CANCELADO e FINALIZADO na fila geral por padrão (quando nenhum filtro de status específico estiver selecionado)
+    if (statusFilter === '' && (pedido.status === 'CANCELADO' || pedido.status === 'FINALIZADO')) {
+      return false;
+    }
+
     if (statusFilter === 'SEM_OPERADOR') {
       if (!(!pedido.operador_nome || pedido.operador_nome.trim() === '')) return false;
     } else if (statusFilter === 'COM_OPERADOR') {
@@ -1270,7 +1275,6 @@ const Dashboard: React.FC = () => {
                   <th>PACIENTE</th>
                   <th>DENTISTA</th>
                   <th>OPERADOR</th>
-                  <th>SERVIÇO / COR</th>
                   <th>PRAZO</th>
                   <th>STATUS</th>
                   <th style={{ textAlign: 'center' }}>AÇÕES</th>
@@ -1321,16 +1325,6 @@ const Dashboard: React.FC = () => {
                       <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                         {pedido.operador_nome || '-'}
                       </td>
-                      <td style={{ maxWidth: '280px', wordBreak: 'break-word', whiteSpace: 'normal' }}>
-                        <div style={{ fontWeight: 500, fontSize: '0.82rem', wordBreak: 'break-word' }}>
-                          {pedido.tipo_servico}
-                        </div>
-                        {pedido.cor && (
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            Cor: <strong style={{ color: 'var(--primary-cyan)' }}>{pedido.cor}</strong>
-                          </div>
-                        )}
-                      </td>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         {pedido.prazo_ajustado || pedido.prazo_original ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1347,19 +1341,19 @@ const Dashboard: React.FC = () => {
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>{getStatusBadge(pedido.status)}</td>
                       <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', alignItems: 'center' }}>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/pedidos/${pedido.id}`);
                             }}
                             className="btn btn-secondary"
-                            style={{ padding: '3px 10px', fontSize: '0.78rem', height: '26px' }}
+                            style={{ padding: '3px 10px', fontSize: '0.78rem', height: '26px', width: '48px', justifyContent: 'center' }}
                           >
                             Ver
                           </button>
-                          {(pedido.status === 'PENDENTE' ||
-                            pedido.status === 'RETRABALHO_CLIENTE') && (
+                          {pedido.status === 'PENDENTE' ||
+                          pedido.status === 'RETRABALHO_CLIENTE' ? (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1370,11 +1364,15 @@ const Dashboard: React.FC = () => {
                                 padding: '3px 10px',
                                 fontSize: '0.78rem',
                                 height: '26px',
+                                width: '56px',
+                                justifyContent: 'center',
                                 minWidth: 'auto',
                               }}
                             >
                               Editar
                             </button>
+                          ) : (
+                            <div style={{ width: '56px', height: '26px' }} />
                           )}
                         </div>
                       </td>

@@ -124,11 +124,7 @@ function App() {
 
         <Route
           path="/casos"
-          element={
-            <ProtectedRoute>
-              <HistoricoCasos />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/dashboard" replace />}
         />
 
         <Route

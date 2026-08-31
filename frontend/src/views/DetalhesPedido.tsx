@@ -50,6 +50,7 @@ interface Usuario {
   id: number;
   username: string;
   first_name: string;
+  role?: string;
 }
 
 const DetalhesPedido: React.FC = () => {
@@ -85,8 +86,8 @@ const DetalhesPedido: React.FC = () => {
 
       if (user?.role === 'GESTOR' || user?.is_superuser) {
         const resUsers = await api.get<Usuario[]>('/usuarios/');
-        // We assume fetching all users here, you could filter by role='OPERADOR' in backend if needed
-        setOperadores(resUsers.data);
+        const operadoresOnly = resUsers.data.filter((u) => u.role === 'OPERADOR');
+        setOperadores(operadoresOnly);
       }
     } catch (err: any) {
       console.error(err);
@@ -524,16 +525,30 @@ const DetalhesPedido: React.FC = () => {
                       {(user?.role === 'GESTOR' || user?.is_superuser) ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                            Atribua um operador para este caso.
+                            Atribua um operador para este caso ou inicie a produção diretamente.
                           </p>
-                          <select className="form-control" value={selectedOperador} onChange={(e) => setSelectedOperador(e.target.value)}>
-                            <option value="">Selecione um profissional</option>
-                            {operadores.map(op => (
-                              <option key={op.id} value={op.id}>{op.first_name || op.username}</option>
-                            ))}
-                          </select>
-                          <button onClick={handleAtribuirOperador} className="btn btn-primary" style={{ alignSelf: 'flex-start' }} disabled={!selectedOperador}>
-                            <UserCog size={18} /> <span>Designar Operador</span>
+                          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <select className="form-control" style={{ width: 'auto', minWidth: '220px' }} value={selectedOperador} onChange={(e) => setSelectedOperador(e.target.value)}>
+                              <option value="">Selecione um operador</option>
+                              {operadores.map(op => (
+                                <option key={op.id} value={op.id}>{op.first_name || op.username}</option>
+                              ))}
+                            </select>
+                            <button onClick={handleAtribuirOperador} className="btn btn-secondary" disabled={!selectedOperador || actionLoading}>
+                              <UserCog size={18} /> <span>Designar Operador</span>
+                            </button>
+                            <button onClick={handleIniciarProducao} className="btn btn-primary" disabled={actionLoading}>
+                              <Clock size={18} /> <span>Iniciar Produção</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (user?.role === 'OPERADOR') ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+                            Este caso está pendente. Inicie a produção para assumir e começar o trabalho.
+                          </p>
+                          <button onClick={handleIniciarProducao} className="btn btn-primary" style={{ alignSelf: 'flex-start' }} disabled={actionLoading}>
+                            <Clock size={18} /> <span>Iniciar Produção</span>
                           </button>
                         </div>
                       ) : (
@@ -542,16 +557,14 @@ const DetalhesPedido: React.FC = () => {
                     </div>
                   ) : (
                     <div>
-                      {pedido.operador === user?.id || user?.role === 'GESTOR' || user?.is_superuser ? (
+                      {pedido.operador === user?.id || user?.role === 'OPERADOR' || user?.role === 'GESTOR' || user?.is_superuser ? (
                         <div>
                           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '15px' }}>
-                            Este caso está alocado para o operador {pedido.operador_nome}. Inicie a produção para registrar o tempo de trabalho.
+                            Este caso está alocado para {pedido.operador_nome || 'o operador'}. Inicie a produção para registrar o tempo de trabalho.
                           </p>
-                          {pedido.operador === user?.id && (
-                            <button onClick={handleIniciarProducao} className="btn btn-primary">
-                              <Clock size={18} /> <span>Iniciar Produção</span>
-                            </button>
-                          )}
+                          <button onClick={handleIniciarProducao} className="btn btn-primary" disabled={actionLoading}>
+                            <Clock size={18} /> <span>Iniciar Produção</span>
+                          </button>
                         </div>
                       ) : (
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Aguardando o operador iniciar a produção.</p>
@@ -580,12 +593,12 @@ const DetalhesPedido: React.FC = () => {
                               onChange={(e) => setEntregavelFile(e.target.files ? e.target.files[0] : null)}
                               style={{ width: 'auto' }}
                             />
-                            <button type="submit" className="btn btn-primary">
-                              <Upload size={18} /> <span>Entregar CAD</span>
+                            <button type="submit" className="btn btn-primary" disabled={actionLoading || !entregavelFile}>
+                              <Upload size={18} /> <span>{actionLoading ? 'Enviando...' : 'Entregar CAD'}</span>
                             </button>
                           </form>
-                          {pedido.operador === user?.id && (
-                            <button type="button" onClick={() => setShowReworkForm(true)} className="btn btn-danger" style={{ alignSelf: 'flex-start' }}>
+                          {(pedido.operador === user?.id || user?.role === 'OPERADOR' || user?.role === 'GESTOR' || user?.is_superuser) && (
+                            <button type="button" onClick={() => setShowReworkForm(true)} className="btn btn-danger" style={{ alignSelf: 'flex-start' }} disabled={actionLoading}>
                               <AlertCircle size={18} /> <span>Pedir Novo Escaneamento (Retrabalho Cliente)</span>
                             </button>
                           )}
