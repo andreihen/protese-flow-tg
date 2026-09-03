@@ -66,6 +66,7 @@ class HistoricoPedidoSerializer(serializers.ModelSerializer):
 
 class PedidoSerializer(serializers.ModelSerializer):
     anexos = AnexoSerializer(many=True, read_only=True)
+    historico = HistoricoPedidoSerializer(many=True, read_only=True)
     dentista_nome = serializers.SerializerMethodField()
     operador_nome = serializers.SerializerMethodField()
 

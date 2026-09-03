@@ -550,6 +550,35 @@ class PedidoViewSet(viewsets.ModelViewSet):
         serializer = HistoricoPedidoSerializer(historico, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'])
+    def download_zip(self, request, pk=None):
+        import io
+        import zipfile
+        from django.http import HttpResponse
+
+        pedido = self.get_object()
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for anexo in pedido.anexos.all():
+                if anexo.arquivo and hasattr(anexo.arquivo, 'path'):
+                    try:
+                        filename = f"anexos/{anexo.arquivo.name.split('/')[-1]}"
+                        zip_file.write(anexo.arquivo.path, filename)
+                    except Exception:
+                        pass
+            if pedido.arquivo_entregavel and hasattr(pedido.arquivo_entregavel, 'path'):
+                try:
+                    filename = f"entregavel/{pedido.arquivo_entregavel.name.split('/')[-1]}"
+                    zip_file.write(pedido.arquivo_entregavel.path, filename)
+                except Exception:
+                    pass
+
+        buffer.seek(0)
+        zip_filename = f"pedido_{pedido.id}_{pedido.nome_paciente.replace(' ', '_')}.zip"
+        response = HttpResponse(buffer.getvalue(), content_type='application/zip')
+        response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
+        return response
+
 class UsuarioViewSet(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -587,6 +616,17 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         self.check_gestor_permission()
         super().perform_destroy(instance)
+
+    @action(detail=True, methods=['post'])
+    def alternar_confirmacao(self, request, pk=None):
+        self.check_gestor_permission()
+        usuario = self.get_object()
+        usuario.cadastro_confirmado = not usuario.cadastro_confirmado
+        usuario.save()
+        return Response({
+            'status': 'Status de confirmação atualizado',
+            'cadastro_confirmado': usuario.cadastro_confirmado
+        })
 
 class DiaExcecaoViewSet(viewsets.ModelViewSet):
     serializer_class = DiaExcecaoSerializer
